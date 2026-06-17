@@ -73,7 +73,10 @@
             padding: 10px;
             background-color: #000;
         }
-        .game-list::-webkit-scrollbar { width: 0px; }
+        
+        .game-list::-webkit-scrollbar { 
+            width: 0px; 
+        }
 
         .history-block {
             background-color: #1c1c1c;
@@ -113,6 +116,7 @@
             align-items: center;
             width: 30%;
         }
+        
         .team-side.right {
             justify-content: flex-end;
         }
@@ -172,7 +176,7 @@
     <div class="tft-screen">
         <div class="header">
             <span>COPA 2026</span>
-            <button id="btn-teste-audio" title="Testar Áudio / Liberar Navegador">
+            <button id="btn-teste-audio" title="Testar Áudio">
                 <img src="assets/favicon.ico" alt="Testar Áudio">
             </button>
         </div>
@@ -195,14 +199,9 @@
         let placaresAnteriores = {};
         const somGol = new Audio('assets/audio.mp3');
 
-        // Evento de clique para o botão de teste de áudio
         document.getElementById('btn-teste-audio').addEventListener('click', () => {
-            somGol.currentTime = 0; // Reinicia o áudio caso seja clicado várias vezes seguidas
-            somGol.play().then(() => {
-                console.log("Áudio liberado e testado com sucesso.");
-            }).catch(e => {
-                console.log("Erro ao reproduzir o áudio de teste.", e);
-            });
+            somGol.currentTime = 0; 
+            somGol.play().catch(() => {});
         });
         
         function criarBlocoPartida(match, isLive = false) {
@@ -214,13 +213,21 @@
             const golA = match.score.fullTime.home !== null ? match.score.fullTime.home : "-";
             const golB = match.score.fullTime.away !== null ? match.score.fullTime.away : "-";
 
+            const dataJogo = new Date(match.utcDate);
+            const dia = String(dataJogo.getDate()).padStart(2, '0');
+            const mes = String(dataJogo.getMonth() + 1).padStart(2, '0');
+            const horaMinuto = dataJogo.toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' });
+
             let infoCentral = "";
-            if (match.status === "IN_PLAY") infoCentral = "Ao Vivo";
-            else if (match.status === "PAUSED") infoCentral = "Intervalo";
-            else if (match.status === "FINISHED") infoCentral = "Encerrado";
-            else {
-                const dataJogo = new Date(match.utcDate);
-                infoCentral = dataJogo.toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' });
+            
+            if (match.status === "IN_PLAY") {
+                infoCentral = "Ao Vivo";
+            } else if (match.status === "PAUSED") {
+                infoCentral = "Intervalo";
+            } else if (match.status === "FINISHED") {
+                infoCentral = `${dia}/${mes} - Fim`; 
+            } else {
+                infoCentral = `${dia}/${mes} ${horaMinuto}`;
             }
 
             return `
@@ -246,7 +253,19 @@
             const mainQueue = document.getElementById('main-queue');
             const historyContent = document.getElementById('history-content');
             
-            const urlFinal = `${URL_PROXY}&nocache=${new Date().getTime()}`;
+            const formatarData = (d) => {
+                return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
+            };
+
+            const hoje = new Date();
+            
+            const dataInicio = new Date(hoje);
+            dataInicio.setDate(hoje.getDate() - 1);
+            
+            const dataFim = new Date(hoje);
+            dataFim.setDate(hoje.getDate() + 3);
+            
+            const urlFinal = `${URL_PROXY}&dateFrom=${formatarData(dataInicio)}&dateTo=${formatarData(dataFim)}&nocache=${hoje.getTime()}`;
 
             try {
                 const response = await fetch(urlFinal, { cache: 'no-store' });
@@ -264,7 +283,7 @@
                         const totalGolsAtuais = golsCasa + golsFora;
 
                         if (placaresAnteriores[m.id] !== undefined && totalGolsAtuais > placaresAnteriores[m.id]) {
-                            somGol.play().catch(e => console.log("Áudio bloqueado pelo navegador", e));
+                            somGol.play().catch(() => {});
                         }
         
                         placaresAnteriores[m.id] = totalGolsAtuais;
@@ -276,8 +295,10 @@
                 proximos.sort((a, b) => new Date(a.utcDate) - new Date(b.utcDate));
                 encerrados.sort((a, b) => new Date(b.utcDate) - new Date(a.utcDate));
 
+                const proximosLimitados = proximos.slice(0, 5);
+
                 mainQueue.innerHTML = "";
-                [...aoVivo, ...proximos].forEach(m => mainQueue.innerHTML += criarBlocoPartida(m, m.status === "IN_PLAY"));
+                [...aoVivo, ...proximosLimitados].forEach(m => mainQueue.innerHTML += criarBlocoPartida(m, m.status === "IN_PLAY"));
                 
                 historyContent.innerHTML = encerrados.length > 0 ? criarBlocoPartida(encerrados[0]) : "Sem resultados";
 
