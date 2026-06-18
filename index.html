@@ -14,7 +14,7 @@
             margin: 0;
             font-family: 'Courier New', Courier, monospace;
         }
-        
+
         .tft-screen {
             width: 320px;
             height: 480px; 
@@ -197,6 +197,9 @@
         const URL_PROXY = 'https://cuptracker.sstudioslabs.workers.dev/v4/matches?competitions=WC';
 
         let placaresAnteriores = {};
+        let historicoGols = {}; 
+        const TEMPO_DESTAQUE_MS = 300000; 
+
         const somGol = new Audio('assets/audio.mp3');
 
         document.getElementById('btn-teste-audio').addEventListener('click', () => {
@@ -204,7 +207,7 @@
             somGol.play().catch(() => {});
         });
         
-        function criarBlocoPartida(match, isLive = false) {
+        function criarBlocoPartida(match, isLive = false, quemMarcou = null) {
             const siglaA = match.homeTeam.tla || "---";
             const siglaB = match.awayTeam.tla || "---";
             const logoA = match.homeTeam.crest || "";
@@ -212,6 +215,9 @@
             
             const golA = match.score.fullTime.home !== null ? match.score.fullTime.home : "-";
             const golB = match.score.fullTime.away !== null ? match.score.fullTime.away : "-";
+
+            const corGolA = quemMarcou === 'home' ? '#00FF00' : '#FFF';
+            const corGolB = quemMarcou === 'away' ? '#00FF00' : '#FFF';
 
             const dataJogo = new Date(match.utcDate);
             const dia = String(dataJogo.getDate()).padStart(2, '0');
@@ -237,7 +243,11 @@
                         <span class="tla">${siglaA}</span>
                     </div>
                     <div class="center-info">
-                        <div class="score-row"><span>${golA}</span><span style="font-size: 14px; color: #555;">x</span><span>${golB}</span></div>
+                        <div class="score-row">
+                            <span style="color: ${corGolA};">${golA}</span>
+                            <span style="font-size: 14px; color: #555;">x</span>
+                            <span style="color: ${corGolB};">${golB}</span>
+                        </div>
                         <span class="status-time">${infoCentral}</span>
                     </div>
                     <div class="team-side right">
@@ -275,18 +285,24 @@
                 debugLog.innerText = "Online";
 
                 const aoVivo = [], proximos = [], encerrados = [];
+                
                 data.matches.forEach(m => {
                     if (m.status === "IN_PLAY" || m.status === "PAUSED") { 
                         aoVivo.push(m);
                         const golsCasa = m.score.fullTime.home !== null ? m.score.fullTime.home : 0;
                         const golsFora = m.score.fullTime.away !== null ? m.score.fullTime.away : 0;
-                        const totalGolsAtuais = golsCasa + golsFora;
 
-                        if (placaresAnteriores[m.id] !== undefined && totalGolsAtuais > placaresAnteriores[m.id]) {
-                            somGol.play().catch(() => {});
+                        if (placaresAnteriores[m.id]) {
+                            if (golsCasa > placaresAnteriores[m.id].home) {
+                                historicoGols[m.id] = { time: 'home', timestamp: hoje.getTime() };
+                                somGol.play().catch(() => {});
+                            } else if (golsFora > placaresAnteriores[m.id].away) {
+                                historicoGols[m.id] = { time: 'away', timestamp: hoje.getTime() };
+                                somGol.play().catch(() => {});
+                            }
                         }
         
-                        placaresAnteriores[m.id] = totalGolsAtuais;
+                        placaresAnteriores[m.id] = { home: golsCasa, away: golsFora };
                     }
                     else if (m.status === "FINISHED") encerrados.push(m);
                     else proximos.push(m);
@@ -298,7 +314,13 @@
                 const proximosLimitados = proximos.slice(0, 5);
 
                 mainQueue.innerHTML = "";
-                [...aoVivo, ...proximosLimitados].forEach(m => mainQueue.innerHTML += criarBlocoPartida(m, m.status === "IN_PLAY"));
+                [...aoVivo, ...proximosLimitados].forEach(m => {
+                    let destaqueAtivo = null;
+                    if (historicoGols[m.id] && (hoje.getTime() - historicoGols[m.id].timestamp < TEMPO_DESTAQUE_MS)) {
+                        destaqueAtivo = historicoGols[m.id].time;
+                    }
+                    mainQueue.innerHTML += criarBlocoPartida(m, m.status === "IN_PLAY", destaqueAtivo);
+                });
                 
                 historyContent.innerHTML = encerrados.length > 0 ? criarBlocoPartida(encerrados[0]) : "Sem resultados";
 
