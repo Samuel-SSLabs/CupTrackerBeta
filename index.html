@@ -4,24 +4,53 @@
     <meta charset="UTF-8">
     <title>Painel Copa 2026</title>
     <link rel="icon" type="image/x-icon" href="assets/favicon.ico">
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
+
     <style>
+        :root {
+            --bg-room: #14161a;
+            --screen-bg: #07090a;
+            --bezel-light: #4b515c;
+            --bezel-dark: #161819;
+            --green-1: #0e8a4b;
+            --green-2: #06472a;
+            --amber: #ffab4d;
+            --gol-glow: #3dffa0;
+            --text-primary: #f4f6f2;
+            --text-muted: #8d939c;
+            --card-bg: #101214;
+            --card-border: #262a30;
+        }
+
+        * {
+            box-sizing: border-box;
+        }
+
         body {
-            background-color: #1a1a1a;
+            background-color: var(--bg-room);
             display: flex;
             justify-content: center;
             align-items: center;
             height: 100vh;
             margin: 0;
-            font-family: 'Courier New', Courier, monospace;
+            font-family: 'Outfit', sans-serif;
         }
 
         .tft-screen {
             width: 320px;
-            height: 480px; 
-            background-color: #000000;
-            border: 10px solid #333;
-            border-radius: 8px;
-            box-shadow: 0 0 20px rgba(0, 0, 0, 0.8);
+            height: 480px;
+            border: 12px solid transparent;
+            border-radius: 22px;
+            background-image:
+                linear-gradient(var(--screen-bg), var(--screen-bg)),
+                linear-gradient(155deg, var(--bezel-light), var(--bezel-dark) 55%, #0a0b0c);
+            background-origin: border-box;
+            background-clip: content-box, border-box;
+            box-shadow:
+                0 25px 60px -12px rgba(0, 0, 0, 0.75),
+                inset 0 0 30px rgba(0, 0, 0, 0.55);
             display: flex;
             flex-direction: column;
             overflow: hidden;
@@ -29,15 +58,16 @@
         }
 
         .header {
-            background-color: #006400;
+            background: linear-gradient(135deg, var(--green-1), var(--green-2));
             color: #FFFFFF;
-            height: 40px;
+            height: 42px;
             display: flex;
             justify-content: center;
             align-items: center;
-            font-size: 20px;
-            font-weight: bold;
-            border-bottom: 2px solid #FFFFFF;
+            font-size: 18px;
+            font-weight: 700;
+            letter-spacing: 1.5px;
+            border-bottom: 2px solid rgba(255, 196, 0, 0.6);
             flex-shrink: 0;
             position: relative;
         }
@@ -52,12 +82,17 @@
             display: flex;
             align-items: center;
             justify-content: center;
-            border-radius: 4px;
-            transition: background-color 0.2s;
+            border-radius: 6px;
+            transition: background-color 0.2s, transform 0.2s;
         }
 
         #btn-teste-audio:hover {
-            background-color: rgba(255, 255, 255, 0.2);
+            background-color: rgba(255, 255, 255, 0.18);
+            transform: scale(1.12);
+        }
+
+        #btn-teste-audio:active {
+            transform: scale(0.95);
         }
 
         #btn-teste-audio img {
@@ -70,45 +105,69 @@
         .game-list {
             flex-grow: 1;
             overflow-y: auto;
-            padding: 10px;
-            background-color: #000;
+            padding: 12px 10px;
+            background-color: transparent;
         }
-        
-        .game-list::-webkit-scrollbar { 
-            width: 0px; 
+
+        .game-list::-webkit-scrollbar {
+            width: 0px;
         }
 
         .history-block {
-            background-color: #1c1c1c;
-            border-top: 2px dashed #555;
+            background-color: #131517;
+            border-top: 1px solid var(--card-border);
             padding: 10px;
             flex-shrink: 0;
         }
 
         .history-title {
-            color: #A9A9A9;
+            color: var(--text-muted);
+            font-size: 11px;
+            font-weight: 500;
+            text-align: center;
+            margin-bottom: 6px;
+            text-transform: uppercase;
+            letter-spacing: 1.5px;
+        }
+
+        #history-content {
+            color: var(--text-muted);
             font-size: 12px;
             text-align: center;
-            margin-bottom: 5px;
-            text-transform: uppercase;
-            letter-spacing: 1px;
         }
 
         .match-block {
             display: flex;
             justify-content: space-between;
             align-items: center;
-            background-color: #111;
-            border: 1px solid #333;
-            border-radius: 6px;
-            padding: 10px 5px;
+            background: linear-gradient(160deg, #16181b, #0b0c0e);
+            border: 1px solid var(--card-border);
+            border-radius: 10px;
+            padding: 10px 6px;
             margin-bottom: 10px;
-            color: #FFF;
+            color: var(--text-primary);
         }
 
         .match-block.live {
-            border-color: #FFA500;
-            background-color: #221500;
+            border-color: var(--amber);
+            background: linear-gradient(160deg, #2a2010, #160f06);
+            box-shadow: 0 0 14px -2px rgba(255, 171, 77, 0.35);
+        }
+
+        .match-block.gol-ativo {
+            border-color: var(--gol-glow);
+            position: relative;
+            animation: brilhoBorda 2.2s ease-in-out infinite;
+        }
+
+        .match-block.gol-ativo::after {
+            content: "";
+            position: absolute;
+            inset: -1px;
+            border-radius: 10px;
+            background: radial-gradient(circle at 50% 50%, rgba(61, 255, 160, 0.16), transparent 70%);
+            pointer-events: none;
+            animation: pulsarFundo 2.2s ease-in-out infinite;
         }
 
         .team-side {
@@ -116,21 +175,23 @@
             align-items: center;
             width: 30%;
         }
-        
+
         .team-side.right {
             justify-content: flex-end;
         }
 
         .team-logo {
-            width: 25px;
-            height: 25px;
+            width: 24px;
+            height: 24px;
             object-fit: contain;
-            margin: 0 5px;
+            margin: 0 6px;
+            filter: drop-shadow(0 1px 2px rgba(0, 0, 0, 0.5));
         }
 
         .tla {
-            font-size: 16px;
-            font-weight: bold;
+            font-size: 14px;
+            font-weight: 600;
+            letter-spacing: 0.5px;
         }
 
         .center-info {
@@ -144,28 +205,98 @@
             display: flex;
             justify-content: center;
             align-items: center;
-            gap: 10px;
+            gap: 8px;
             font-size: 22px;
-            font-weight: bold;
+            font-weight: 700;
+        }
+
+        .score-num {
+            display: inline-block;
+            min-width: 16px;
+            text-align: center;
+            font-variant-numeric: tabular-nums;
+            transition: color 0.3s ease;
+        }
+
+        .score-sep {
+            font-size: 12px;
+            font-weight: 400;
+            color: var(--text-muted);
+        }
+
+        .score-num.gol-marcado {
+            animation: brilhoGol 2.2s ease-in-out infinite;
         }
 
         .status-time {
-            font-size: 12px;
+            font-size: 11px;
+            font-weight: 400;
             margin-top: 5px;
-            color: #A9A9A9;
+            color: var(--text-muted);
+            display: flex;
+            align-items: center;
+            gap: 5px;
         }
-        
+
         .live .status-time {
-            color: #FFA500;
-            font-weight: bold;
+            color: var(--amber);
+            font-weight: 600;
+        }
+
+        .live-dot {
+            width: 6px;
+            height: 6px;
+            border-radius: 50%;
+            background-color: var(--amber);
+            display: inline-block;
+            animation: pulsarPonto 1.4s ease-in-out infinite;
         }
 
         #debug-log {
             position: absolute;
             top: 10px;
-            left: 10px;
-            color: #00FF00;
-            font-size: 10px;
+            left: 12px;
+            color: #6fffa0;
+            font-size: 9px;
+            font-weight: 500;
+            letter-spacing: 0.5px;
+            text-transform: uppercase;
+            z-index: 10;
+            opacity: 0.85;
+        }
+
+        @keyframes pulsarPonto {
+            0%, 100% { opacity: 1; transform: scale(1); }
+            50% { opacity: 0.35; transform: scale(0.75); }
+        }
+
+        @keyframes brilhoGol {
+            0%, 100% {
+                text-shadow: 0 0 4px rgba(61, 255, 160, 0.18);
+            }
+            50% {
+                text-shadow: 0 0 10px rgba(61, 255, 160, 0.45), 0 0 18px rgba(61, 255, 160, 0.28);
+            }
+        }
+
+        @keyframes brilhoBorda {
+            0%, 100% { box-shadow: 0 0 4px rgba(61, 255, 160, 0.18); }
+            50% { box-shadow: 0 0 10px rgba(61, 255, 160, 0.45); }
+        }
+
+        @keyframes pulsarFundo {
+            0%, 100% { opacity: 0.4; }
+            50% { opacity: 1; }
+        }
+
+        @media (prefers-reduced-motion: reduce) {
+            .match-block,
+            .live-dot,
+            .score-num.gol-marcado,
+            .match-block.gol-ativo,
+            .match-block.gol-ativo::after {
+                animation: none !important;
+            }
         }
     </style>
 </head>
@@ -182,13 +313,13 @@
         </div>
         
         <div class="game-list" id="main-queue">
-            <div style="color: white; text-align: center; margin-top: 50px;">Carregando...</div>
+            <div style="color: var(--text-muted); text-align: center; margin-top: 50px; font-size: 13px;">Carregando...</div>
         </div>
 
         <div class="history-block">
             <div class="history-title">Último Resultado</div>
             <div id="history-content">
-                <div style="color: #555; text-align: center; font-size: 12px;">Aguardando dados...</div>
+                <div style="color: var(--text-muted); text-align: center; font-size: 12px;">Aguardando dados...</div>
             </div>
         </div>
     </div>
@@ -198,7 +329,7 @@
 
         let placaresAnteriores = {};
         let historicoGols = {}; 
-        const TEMPO_DESTAQUE_MS = 300000; 
+        const TEMPO_DESTAQUE_MS = 180000; 
 
         const somGol = new Audio('assets/audio.mp3');
 
@@ -227,7 +358,7 @@
             let infoCentral = "";
             
             if (match.status === "IN_PLAY") {
-                infoCentral = "Ao Vivo";
+                infoCentral = '<span class="live-dot"></span>Ao Vivo';
             } else if (match.status === "PAUSED") {
                 infoCentral = "Intervalo";
             } else if (match.status === "FINISHED") {
@@ -237,16 +368,16 @@
             }
 
             return `
-                <div class="match-block ${isLive ? 'live' : ''}">
+                <div class="match-block ${isLive ? 'live' : ''} ${quemMarcou ? 'gol-ativo' : ''}">
                     <div class="team-side">
                         <img src="${logoA}" class="team-logo" alt="${siglaA}">
                         <span class="tla">${siglaA}</span>
                     </div>
                     <div class="center-info">
                         <div class="score-row">
-                            <span style="color: ${corGolA};">${golA}</span>
-                            <span style="font-size: 14px; color: #555;">x</span>
-                            <span style="color: ${corGolB};">${golB}</span>
+                            <span class="score-num ${quemMarcou === 'home' ? 'gol-marcado' : ''}" style="color: ${corGolA};">${golA}</span>
+                            <span class="score-sep">x</span>
+                            <span class="score-num ${quemMarcou === 'away' ? 'gol-marcado' : ''}" style="color: ${corGolB};">${golB}</span>
                         </div>
                         <span class="status-time">${infoCentral}</span>
                     </div>
