@@ -59,6 +59,8 @@ async function abrirMenuDetalhes(fixtureId) {
 
     await carregarDetalhes(fixtureId);
 
+    if (fixtureAtualNoModal !== fixtureId) return;
+
     const s = cachePartidas[fixtureId]?.fixture?.status?.short ?? '';
     if (STATUS_LIVE_COM_HT.includes(s)) {
         clearInterval(atualizacaoDetalhesIntervalo);
@@ -75,8 +77,12 @@ async function carregarDetalhes(fixtureId) {
         if (!res.ok) throw new Error(`HTTP ${res.status}`);
         const dados = await res.json();
         if (dados.erro) throw new Error(dados.erro);
+
+        if (fixtureAtualNoModal !== fixtureId) return;
+
         renderizarDetalhes(fixtureId, dados);
     } catch (e) {
+        if (fixtureAtualNoModal !== fixtureId) return;
         conteudo.innerHTML = '<div class="modal-erro">Não foi possível carregar os detalhes desta partida.</div>';
     }
 }
