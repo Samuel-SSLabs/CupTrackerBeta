@@ -391,13 +391,21 @@ async function atualizarPainel() {
             ? criarBlocoPartida(encerrados[0])
             : '<div style="color:var(--text-muted);text-align:center;font-size:12px;">Sem resultados</div>';
 
+        const temJogoAoVivo = aoVivo.length > 0;
+        const tempoProximaBusca = temJogoAoVivo ? 15000 : 60000;
+        
+        if (window.timerAtualizacao) clearTimeout(window.timerAtualizacao);
+        window.timerAtualizacao = setTimeout(atualizarPainel, tempoProximaBusca);
+
     } catch (e) {
         debugLog.innerText = 'Erro de conexão';
         if (mainQueue.innerHTML.includes('Carregando')) {
             mainQueue.innerHTML = '<div class="sem-jogos">Erro ao carregar.<br>Tentando novamente...</div>';
         }
+        
+        if (window.timerAtualizacao) clearTimeout(window.timerAtualizacao);
+        window.timerAtualizacao = setTimeout(atualizarPainel, 60000);
     }
 }
 
 atualizarPainel();
-setInterval(atualizarPainel, 15000);
