@@ -11,7 +11,9 @@
     --text-muted: #8d939c;
     --card-border: #262a30;
 }
+
 * { box-sizing: border-box; }
+
 body {
     background-color: var(--bg-room);
     display: flex;
@@ -21,6 +23,7 @@ body {
     margin: 0;
     font-family: 'Outfit', sans-serif;
 }
+
 .tft-screen {
     width: 320px;
     height: 480px;
@@ -37,6 +40,7 @@ body {
     overflow: hidden;
     position: relative;
 }
+
 .header {
     background: linear-gradient(135deg, var(--green-1), var(--green-2));
     color: #fff;
@@ -51,6 +55,7 @@ body {
     flex-shrink: 0;
     position: relative;
 }
+
 #btn-teste-audio {
     position: absolute;
     right: 10px;
@@ -64,14 +69,18 @@ body {
     border-radius: 6px;
     transition: background-color 0.2s, transform 0.2s;
 }
+
 #btn-teste-audio:hover { background-color: rgba(255,255,255,0.18); transform: scale(1.12); }
 #btn-teste-audio:active { transform: scale(0.95); }
 #btn-teste-audio img { width: 20px; height: 20px; object-fit: contain; filter: invert(1); }
+
 .game-list { flex-grow: 1; overflow-y: auto; padding: 12px 10px; background-color: transparent; }
 .game-list::-webkit-scrollbar { width: 0px; }
+
 .history-block { background-color: #131517; border-top: 1px solid var(--card-border); padding: 10px; flex-shrink: 0; }
 .history-title { color: var(--text-muted); font-size: 11px; font-weight: 500; text-align: center; margin-bottom: 6px; text-transform: uppercase; letter-spacing: 1.5px; }
 #history-content { color: var(--text-muted); font-size: 12px; text-align: center; }
+
 .match-block {
     display: flex;
     justify-content: space-between;
@@ -84,25 +93,32 @@ body {
     color: var(--text-primary);
     cursor: default;
 }
+
 .match-block.clicavel { cursor: pointer; }
 .match-block.live { border-color: var(--amber); background: linear-gradient(160deg, #2a2010, #160f06); box-shadow: 0 0 14px -2px rgba(255,171,77,0.35); }
 .match-block.gol-ativo { border-color: var(--gol-glow); position: relative; animation: brilhoBorda 2.2s ease-in-out infinite; }
 .match-block.gol-ativo::after { content: ""; position: absolute; inset: -1px; border-radius: 10px; background: radial-gradient(circle at 50% 50%, rgba(61,255,160,0.16), transparent 70%); pointer-events: none; animation: pulsarFundo 2.2s ease-in-out infinite; }
+
 .team-side { display: flex; align-items: center; width: 30%; }
 .team-side.right { justify-content: flex-end; }
 .team-logo { width: 24px; height: 24px; object-fit: contain; margin: 0 6px; filter: drop-shadow(0 1px 2px rgba(0,0,0,0.5)); }
 .tla { font-size: 14px; font-weight: 600; letter-spacing: 0.5px; }
+
 .center-info { display: flex; flex-direction: column; align-items: center; width: 40%; }
 .match-minute { font-size: 13px; font-weight: 700; color: var(--amber); min-height: 16px; margin-bottom: 2px; letter-spacing: 0.5px; }
 .score-row { display: flex; justify-content: center; align-items: center; gap: 8px; font-size: 22px; font-weight: 700; }
 .score-num { display: inline-block; min-width: 16px; text-align: center; font-variant-numeric: tabular-nums; transition: color 0.3s ease; }
 .score-sep { font-size: 12px; font-weight: 400; color: var(--text-muted); }
 .score-num.gol-marcado { animation: brilhoGol 2.2s ease-in-out infinite; }
+
 .status-time { font-size: 11px; font-weight: 400; margin-top: 5px; color: var(--text-muted); display: flex; align-items: center; gap: 5px; }
 .live .status-time { color: var(--amber); font-weight: 600; }
 .live-dot { width: 6px; height: 6px; border-radius: 50%; background-color: var(--amber); display: inline-block; animation: pulsarPonto 1.4s ease-in-out infinite; }
+
 #debug-log { position: absolute; top: 10px; left: 12px; color: #6fffa0; font-size: 9px; font-weight: 500; letter-spacing: 0.5px; text-transform: uppercase; z-index: 10; opacity: 0.85; }
 .sem-jogos { color: var(--text-muted); text-align: center; margin-top: 50px; font-size: 13px; line-height: 1.6; }
+
+/* MODAL */
 #modal-detalhes {
     position: absolute;
     inset: 0;
@@ -113,14 +129,17 @@ body {
     transform: translateX(100%);
     transition: transform 0.28s cubic-bezier(0.4, 0, 0.2, 1);
 }
+
 #modal-detalhes.visivel { transform: translateX(0); }
 .modal-header { background: linear-gradient(135deg, var(--green-1), var(--green-2)); height: 42px; display: flex; align-items: center; padding: 0 10px; gap: 10px; border-bottom: 2px solid rgba(255,196,0,0.6); flex-shrink: 0; }
 #btn-voltar { background: none; border: none; cursor: pointer; color: #fff; font-size: 20px; line-height: 1; padding: 4px 6px; border-radius: 6px; transition: background-color 0.2s, transform 0.2s; display: flex; align-items: center; }
 #btn-voltar:hover { background-color: rgba(255,255,255,0.18); transform: scale(1.1); }
 #btn-voltar:active { transform: scale(0.92); }
 .modal-titulo { color: #fff; font-size: 14px; font-weight: 700; letter-spacing: 1px; flex: 1; text-align: center; padding-right: 32px; }
+
 .modal-body { flex-grow: 1; overflow-y: auto; padding: 12px 10px; }
 .modal-body::-webkit-scrollbar { width: 0px; }
+
 .modal-placar { display: flex; justify-content: space-between; align-items: center; background: linear-gradient(160deg, #16181b, #0b0c0e); border: 1px solid var(--card-border); border-radius: 10px; padding: 14px 8px 10px; margin-bottom: 14px; color: var(--text-primary); }
 .modal-placar.live { border-color: var(--amber); background: linear-gradient(160deg, #2a2010, #160f06); box-shadow: 0 0 14px -2px rgba(255,171,77,0.35); }
 .modal-team-side { display: flex; flex-direction: column; align-items: center; gap: 6px; width: 34%; }
@@ -130,6 +149,7 @@ body {
 .modal-score { font-size: 32px; font-weight: 800; letter-spacing: 2px; }
 .modal-status { font-size: 11px; color: var(--text-muted); display: flex; align-items: center; gap: 5px; }
 .modal-placar.live .modal-status { color: var(--amber); font-weight: 600; }
+
 .secao-titulo { color: var(--text-muted); font-size: 10px; font-weight: 600; text-transform: uppercase; letter-spacing: 1.5px; text-align: center; margin: 12px 0 8px; }
 .stat-row { display: flex; align-items: center; gap: 6px; margin-bottom: 8px; }
 .stat-val { font-size: 12px; font-weight: 700; color: var(--text-primary); width: 28px; text-align: center; flex-shrink: 0; }
@@ -138,42 +158,43 @@ body {
 .stat-barra-container { flex: 1; display: flex; height: 4px; border-radius: 2px; overflow: hidden; background: #1e2024; }
 .stat-barra-home { height: 100%; background: var(--green-1); border-radius: 2px 0 0 2px; transition: width 0.5s ease; }
 .stat-barra-away { height: 100%; background: #3a7bd5; border-radius: 0 2px 2px 0; transition: width 0.5s ease; }
+
 .evento-item { display: flex; align-items: center; gap: 6px; padding: 5px 6px; border-radius: 6px; margin-bottom: 4px; background: #0f1113; border: 1px solid var(--card-border); }
 .evento-minuto { font-size: 10px; font-weight: 700; color: var(--amber); width: 26px; flex-shrink: 0; }
 .evento-icone { font-size: 13px; flex-shrink: 0; }
 .evento-desc { flex: 1; font-size: 11px; color: var(--text-primary); line-height: 1.3; }
 .evento-detalhe { color: var(--text-muted); font-size: 10px; }
 .evento-lado { font-size: 10px; color: var(--text-muted); flex-shrink: 0; }
+
 .modal-loading { display: flex; flex-direction: column; align-items: center; justify-content: center; height: 100%; gap: 10px; color: var(--text-muted); font-size: 13px; }
 .spinner { width: 22px; height: 22px; border: 2px solid #2a2e35; border-top-color: var(--green-1); border-radius: 50%; animation: girar 0.8s linear infinite; }
 .modal-erro { text-align: center; color: var(--text-muted); font-size: 12px; padding: 30px 10px; }
+
+/* FOOTER / POWERED BY */
 .powered-by { position: fixed; bottom: 24px; left: 24px; display: flex; flex-direction: column; align-items: flex-start; gap: 6px; z-index: 1000; opacity: 0.5; transition: opacity 0.3s ease; pointer-events: none; }
 .powered-by:hover { opacity: 1; }
 .powered-by span { font-size: 11px; color: #888888; text-transform: uppercase; letter-spacing: 1px; }
 .powered-by-logos { display: flex; align-items: center; gap: 10px; }
 .powered-by-logos img { height: 20px; object-fit: contain; }
 .powered-by-logos img:last-child { transform: scale(0.9); transform-origin: center; image-rendering: -webkit-optimize-contrast; }
+
+/* ANIMAÇÕES */
 @keyframes girar { to { transform: rotate(360deg); } }
 @keyframes pulsarPonto { 0%, 100% { opacity: 1; transform: scale(1); } 50% { opacity: 0.35; transform: scale(0.75); } }
 @keyframes brilhoGol { 0%, 100% { text-shadow: 0 0 4px rgba(61,255,160,0.18); } 50% { text-shadow: 0 0 10px rgba(61,255,160,0.45), 0 0 18px rgba(61,255,160,0.28); } }
 @keyframes brilhoBorda { 0%, 100% { box-shadow: 0 0 4px rgba(61,255,160,0.18); } 50% { box-shadow: 0 0 10px rgba(61,255,160,0.45); } }
 @keyframes pulsarFundo { 0%, 100% { opacity: 0.4; } 50% { opacity: 1; } }
+
 @media (prefers-reduced-motion: reduce) {
     .match-block, .live-dot, .score-num.gol-marcado,
     .match-block.gol-ativo, .match-block.gol-ativo::after, .spinner { animation: none !important; }
     #modal-detalhes { transition: none !important; }
 }
 
-/* ==========================================================================
-   MODO MOBILE
-   Abaixo de 480px de largura, o painel (.tft-screen) passa a ocupar 100%
-   da tela (sem bezel/moldura), simulando um app fullscreen.
-   Nada aqui altera as regras acima, que continuam valendo no desktop.
-   ========================================================================== */
 @media (max-width: 480px) {
     body {
         height: 100vh;
-        height: 100dvh; /* usa altura visual real em navegadores mobile modernos */
+        height: 100dvh;
         flex-direction: column;
         align-items: stretch;
         justify-content: flex-start;
@@ -187,13 +208,9 @@ body {
         border: none;
         border-radius: 0;
         box-shadow: none;
-        /* respeita área segura do notch em iOS/Android */
         padding-top: env(safe-area-inset-top);
     }
 
-    /* O botão "Powered by" fixo no canto da tela faz sentido em desktop,
-       mas em fullscreen mobile ele ficaria sobre o conteúdo do painel.
-       Aqui ele é movido para dentro do fluxo, junto ao histórico. */
     .powered-by {
         position: static;
         flex-shrink: 0;
