@@ -358,7 +358,8 @@
             let infoCentral = "";
             
             if (match.status === "IN_PLAY") {
-                infoCentral = '<span class="live-dot"></span>Ao Vivo';
+                const minuto = match.tempoDecorrido ? `${match.tempoDecorrido}'` : "Ao Vivo";
+                infoCentral = `<span class="live-dot"></span> ${minuto}`;
             } else if (match.status === "PAUSED") {
                 infoCentral = "Intervalo";
             } else if (match.status === "FINISHED") {
@@ -406,10 +407,10 @@
             const dataFim = new Date(hoje);
             dataFim.setDate(hoje.getDate() + 3);
             
-            const urlFinal = `${URL_PROXY}&dateFrom=${formatarData(dataInicio)}&dateTo=${formatarData(dataFim)}&nocache=${hoje.getTime()}`;
+            const urlFinal = `${URL_PROXY}&dateFrom=${formatarData(dataInicio)}&dateTo=${formatarData(dataFim)}`;
 
             try {
-                const response = await fetch(urlFinal, { cache: 'no-store' });
+                const response = await fetch(urlFinal);
                 if (!response.ok) throw new Error();
                 const data = await response.json();
                 
@@ -461,7 +462,8 @@
         }
 
         atualizarPainel();
-        setInterval(atualizarPainel, 30000); 
+        
+        setInterval(atualizarPainel, 15000); 
     </script>
 </body>
 </html>
