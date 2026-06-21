@@ -155,9 +155,9 @@ body {
 .stat-val { font-size: 12px; font-weight: 700; color: var(--text-primary); width: 28px; text-align: center; flex-shrink: 0; }
 .stat-val.right { text-align: right; }
 .stat-nome { font-size: 10px; color: var(--text-muted); flex: 1; text-align: center; }
-.stat-barra-container { flex: 1; display: flex; height: 4px; border-radius: 2px; overflow: hidden; background: #1e2024; }
-.stat-barra-home { height: 100%; background: var(--green-1); border-radius: 2px 0 0 2px; transition: width 0.5s ease; }
-.stat-barra-away { height: 100%; background: #3a7bd5; border-radius: 0 2px 2px 0; transition: width 0.5s ease; }
+.stat-barra-container { flex: 1; display: flex; height: 6px; border-radius: 4px; overflow: hidden; background: #1e2024;}
+.stat-barra-home { height: 100%; background: var(--green-1); border-radius: 4px 0 0 4px; transition: width 0.8s cubic-bezier(0.4, 0, 0.2, 1); }
+.stat-barra-away { height: 100%; background: var(--amber); border-radius: 0 4px 4px 0; transition: width 0.8s cubic-bezier(0.4, 0, 0.2, 1); }
 
 .evento-item { display: flex; align-items: center; gap: 6px; padding: 5px 6px; border-radius: 6px; margin-bottom: 4px; background: #0f1113; border: 1px solid var(--card-border); }
 .evento-minuto { font-size: 10px; font-weight: 700; color: var(--amber); width: 26px; flex-shrink: 0; }
@@ -193,22 +193,31 @@ body {
 
 @media (max-width: 480px) {
     body {
-        height: 100vh;
-        height: 100dvh;
+        height: auto;
+        min-height: 100dvh;
         flex-direction: column;
         align-items: stretch;
         justify-content: flex-start;
-        overflow: hidden;
+        overflow: auto;
+        overscroll-behavior-y: auto;
     }
 
     .tft-screen {
         width: 100vw;
-        flex: 1 1 auto;
         height: auto;
+        min-height: 100dvh;
         border: none;
         border-radius: 0;
         box-shadow: none;
         padding-top: env(safe-area-inset-top);
+    }
+
+    .game-list {
+        overflow-y: visible;
+    }
+
+    #modal-detalhes {
+        position: fixed; 
     }
 
     .powered-by {
@@ -217,7 +226,7 @@ body {
         opacity: 0.6;
         pointer-events: auto;
         align-items: center;
-        padding: 8px 0 calc(8px + env(safe-area-inset-bottom));
+        padding: 12px 0 calc(12px + env(safe-area-inset-bottom));
         background-color: #131517;
     }
 }
