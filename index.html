@@ -201,6 +201,15 @@
             width: 40%;
         }
 
+        .match-minute {
+            font-size: 13px;
+            font-weight: 700;
+            color: var(--amber);
+            min-height: 16px;
+            margin-bottom: 2px;
+            letter-spacing: 0.5px;
+        }
+        
         .score-row {
             display: flex;
             justify-content: center;
@@ -324,8 +333,8 @@
         </div>
     </div>
 
-    <script>
-        const URL_PROXY = 'https://cuptracker.sstudioslabs.workers.dev/v4/matches?competitions=WC';
+<script>
+        const URL_PROXY = 'https://cuptracker.sstudioslabs.workers.dev/v4/matches';
 
         let placaresAnteriores = {};
         let historicoGols = {}; 
@@ -338,43 +347,57 @@
             somGol.play().catch(() => {});
         });
         
+        function abrirMenuDetalhes(fixtureId) {
+            console.log("Abrir detalhes da partida ID:", fixtureId);
+        }
+        
         function criarBlocoPartida(match, isLive = false, quemMarcou = null) {
-            const siglaA = match.homeTeam.tla || "---";
-            const siglaB = match.awayTeam.tla || "---";
-            const logoA = match.homeTeam.crest || "";
-            const logoB = match.awayTeam.crest || "";
+            const siglaA = match.teams.home.name.substring(0, 3).toUpperCase();
+            const siglaB = match.teams.away.name.substring(0, 3).toUpperCase();
+            const logoA = match.teams.home.logo;
+            const logoB = match.teams.away.logo;
             
-            const golA = match.score.fullTime.home !== null ? match.score.fullTime.home : "-";
-            const golB = match.score.fullTime.away !== null ? match.score.fullTime.away : "-";
+            const golA = match.goals.home !== null ? match.goals.home : "-";
+            const golB = match.goals.away !== null ? match.goals.away : "-";
 
             const corGolA = quemMarcou === 'home' ? '#00FF00' : '#FFF';
             const corGolB = quemMarcou === 'away' ? '#00FF00' : '#FFF';
 
-            const dataJogo = new Date(match.utcDate);
+            const dataJogo = new Date(match.fixture.date);
             const dia = String(dataJogo.getDate()).padStart(2, '0');
             const mes = String(dataJogo.getMonth() + 1).padStart(2, '0');
             const horaMinuto = dataJogo.toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' });
 
+            const statusShort = match.fixture.status.short;
+            const isLiveStatus = ["1H", "2H", "ET", "P"].includes(statusShort);
+            const isPaused = statusShort === "HT";
+            const isFinished = ["FT", "AET", "PEN"].includes(statusShort);
+
             let infoCentral = "";
+            let infoMinuto = ""; 
             
-            if (match.status === "IN_PLAY") {
-                const minuto = match.tempoDecorrido ? `${match.tempoDecorrido}'` : "Ao Vivo";
-                infoCentral = `<span class="live-dot"></span> ${minuto}`;
-            } else if (match.status === "PAUSED") {
+            if (isLiveStatus) {
+                infoMinuto = match.fixture.status.elapsed ? `${match.fixture.status.elapsed}'` : "";
+                infoCentral = '<span class="live-dot"></span> Ao Vivo';
+            } else if (isPaused) {
+                infoMinuto = "HT";
                 infoCentral = "Intervalo";
-            } else if (match.status === "FINISHED") {
+            } else if (isFinished) {
                 infoCentral = `${dia}/${mes} - Fim`; 
             } else {
                 infoCentral = `${dia}/${mes} ${horaMinuto}`;
             }
 
             return `
-                <div class="match-block ${isLive ? 'live' : ''} ${quemMarcou ? 'gol-ativo' : ''}">
+                <div class="match-block ${isLive ? 'live' : ''} ${quemMarcou ? 'gol-ativo' : ''}" 
+                     style="cursor: pointer;" 
+                     onclick="abrirMenuDetalhes(${match.fixture.id})">
                     <div class="team-side">
                         <img src="${logoA}" class="team-logo" alt="${siglaA}">
                         <span class="tla">${siglaA}</span>
                     </div>
                     <div class="center-info">
+                        <span class="match-minute">${infoMinuto}</span>
                         <div class="score-row">
                             <span class="score-num ${quemMarcou === 'home' ? 'gol-marcado' : ''}" style="color: ${corGolA};">${golA}</span>
                             <span class="score-sep">x</span>
@@ -400,58 +423,62 @@
             };
 
             const hoje = new Date();
-            
             const dataInicio = new Date(hoje);
             dataInicio.setDate(hoje.getDate() - 1);
-            
             const dataFim = new Date(hoje);
             dataFim.setDate(hoje.getDate() + 3);
             
-            const urlFinal = `${URL_PROXY}&dateFrom=${formatarData(dataInicio)}&dateTo=${formatarData(dataFim)}`;
+            const urlFinal = `${URL_PROXY}?dateFrom=${formatarData(dataInicio)}&dateTo=${formatarData(dataFim)}`;
 
             try {
                 const response = await fetch(urlFinal);
                 if (!response.ok) throw new Error();
-                const data = await response.json();
+                const data = await response.json(); // Data agora é o formato PRO
                 
                 debugLog.innerText = "Online";
 
                 const aoVivo = [], proximos = [], encerrados = [];
                 
-                data.matches.forEach(m => {
-                    if (m.status === "IN_PLAY" || m.status === "PAUSED") { 
-                        aoVivo.push(m);
-                        const golsCasa = m.score.fullTime.home !== null ? m.score.fullTime.home : 0;
-                        const golsFora = m.score.fullTime.away !== null ? m.score.fullTime.away : 0;
+                if(data.response) {
+                    data.response.forEach(m => {
+                        const statusShort = m.fixture.status.short;
+                        const isLiveStatus = ["1H", "2H", "ET", "P", "HT"].includes(statusShort);
+                        const isFinished = ["FT", "AET", "PEN"].includes(statusShort);
 
-                        if (placaresAnteriores[m.id]) {
-                            if (golsCasa > placaresAnteriores[m.id].home) {
-                                historicoGols[m.id] = { time: 'home', timestamp: hoje.getTime() };
-                                somGol.play().catch(() => {});
-                            } else if (golsFora > placaresAnteriores[m.id].away) {
-                                historicoGols[m.id] = { time: 'away', timestamp: hoje.getTime() };
-                                somGol.play().catch(() => {});
+                        if (isLiveStatus) { 
+                            aoVivo.push(m);
+                            const golsCasa = m.goals.home !== null ? m.goals.home : 0;
+                            const golsFora = m.goals.away !== null ? m.goals.away : 0;
+
+                            if (placaresAnteriores[m.fixture.id]) {
+                                if (golsCasa > placaresAnteriores[m.fixture.id].home) {
+                                    historicoGols[m.fixture.id] = { time: 'home', timestamp: hoje.getTime() };
+                                    somGol.play().catch(() => {});
+                                } else if (golsFora > placaresAnteriores[m.fixture.id].away) {
+                                    historicoGols[m.fixture.id] = { time: 'away', timestamp: hoje.getTime() };
+                                    somGol.play().catch(() => {});
+                                }
                             }
+            
+                            placaresAnteriores[m.fixture.id] = { home: golsCasa, away: golsFora };
                         }
-        
-                        placaresAnteriores[m.id] = { home: golsCasa, away: golsFora };
-                    }
-                    else if (m.status === "FINISHED") encerrados.push(m);
-                    else proximos.push(m);
-                });
+                        else if (isFinished) encerrados.push(m);
+                        else proximos.push(m);
+                    });
+                }
 
-                proximos.sort((a, b) => new Date(a.utcDate) - new Date(b.utcDate));
-                encerrados.sort((a, b) => new Date(b.utcDate) - new Date(a.utcDate));
+                proximos.sort((a, b) => new Date(a.fixture.date) - new Date(b.fixture.date));
+                encerrados.sort((a, b) => new Date(b.fixture.date) - new Date(a.fixture.date));
 
                 const proximosLimitados = proximos.slice(0, 5);
 
                 mainQueue.innerHTML = "";
                 [...aoVivo, ...proximosLimitados].forEach(m => {
                     let destaqueAtivo = null;
-                    if (historicoGols[m.id] && (hoje.getTime() - historicoGols[m.id].timestamp < TEMPO_DESTAQUE_MS)) {
-                        destaqueAtivo = historicoGols[m.id].time;
+                    if (historicoGols[m.fixture.id] && (hoje.getTime() - historicoGols[m.fixture.id].timestamp < TEMPO_DESTAQUE_MS)) {
+                        destaqueAtivo = historicoGols[m.fixture.id].time;
                     }
-                    mainQueue.innerHTML += criarBlocoPartida(m, m.status === "IN_PLAY", destaqueAtivo);
+                    mainQueue.innerHTML += criarBlocoPartida(m, ["1H", "2H", "ET", "P"].includes(m.fixture.status.short), destaqueAtivo);
                 });
                 
                 historyContent.innerHTML = encerrados.length > 0 ? criarBlocoPartida(encerrados[0]) : "Sem resultados";
@@ -462,7 +489,6 @@
         }
 
         atualizarPainel();
-        
         setInterval(atualizarPainel, 15000); 
     </script>
 </body>
