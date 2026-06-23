@@ -227,8 +227,8 @@ function renderizarDetalhes(fixtureId, dados) {
 
                 return `
                     <div class="evento-item">
-                        <span class="evento-minuto">${minuto}</span>
                         <div class="evento-col home">${conteudoHome}</div>
+                        <span class="evento-minuto">${minuto}</span>
                         <div class="evento-col away">${conteudoAway}</div>
                     </div>`;
             }).join('');
