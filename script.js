@@ -214,30 +214,32 @@ function renderizarDetalhes(fixtureId, dados) {
                 }
 
                 const desc = e.player?.name || '—';
-                const siglaTime = isHome ? siglaHome : siglaAway;
 
-                /*
-                 * Layout:
-                 *   Casa  → [SIGLA] [ícone] [min']  |  nome centralizado  |  (vazio)
-                 *   Fora  → (vazio)                  |  nome centralizado  |  [min'] [ícone] [SIGLA]
-                 */
-                const colunaEsq = isHome
-                    ? `<span class="evento-sigla">${siglaTime}</span><span class="evento-icone">${icone}</span><span class="evento-minuto">${minuto}</span>`
+                // Minuto sempre à esquerda.
+                // Casa  → [min'] | [icone] nome  | (vazio)
+                // Fora  → [min'] | (vazio)        | nome [icone]
+                const conteudoHome = isHome
+                    ? `<span class="evento-icone">${icone}</span><span class="evento-nome">${desc}${detalhe ? ` <span class="evento-detalhe">${detalhe}</span>` : ''}</span>`
                     : '';
-                const colunaDir = !isHome
-                    ? `<span class="evento-minuto">${minuto}</span><span class="evento-icone">${icone}</span><span class="evento-sigla">${siglaTime}</span>`
+                const conteudoAway = !isHome
+                    ? `<span class="evento-nome">${desc}${detalhe ? ` <span class="evento-detalhe">${detalhe}</span>` : ''}</span><span class="evento-icone">${icone}</span>`
                     : '';
 
                 return `
                     <div class="evento-item">
-                        <div class="evento-col-side left">${colunaEsq}</div>
-                        <div class="evento-desc">
-                            ${desc}${detalhe ? `<span class="evento-detalhe"> ${detalhe}</span>` : ''}
-                        </div>
-                        <div class="evento-col-side right">${colunaDir}</div>
+                        <span class="evento-minuto">${minuto}</span>
+                        <div class="evento-col home">${conteudoHome}</div>
+                        <div class="evento-col away">${conteudoAway}</div>
                     </div>`;
             }).join('');
-            htmlEventos = `<div class="secao-titulo">Gols &amp; Cartões</div>${itens}`;
+
+            const cabecalho = `
+                <div class="secao-titulo eventos-header">
+                    <span class="eventos-header-time">${siglaHome}</span>
+                    <span>Gols &amp; Cartões</span>
+                    <span class="eventos-header-time">${siglaAway}</span>
+                </div>`;
+            htmlEventos = cabecalho + itens;
         }
     }
 
