@@ -11,6 +11,8 @@ const TEMPO_DESTAQUE_MS = 180000;
 let cachePartidas = {};
 let atualizacaoDetalhesIntervalo = null;
 let fixtureAtualNoModal = null;
+let primeiraCargaMain = true;
+let cacheDetalhesMemoria = {};
 
 const somGol = new Audio('assets/audio.mp3');
 
@@ -48,14 +50,18 @@ function temDetalhes(statusShort) {
 
 async function abrirMenuDetalhes(fixtureId) {
     const match = cachePartidas[fixtureId];
-    if (!match) return;
-    if (!temDetalhes(match.fixture.status.short)) return;
+    if (!match || !temDetalhes(match.fixture.status.short)) return;
 
     const modal = document.getElementById('modal-detalhes');
     const conteudo = document.getElementById('conteudo-estatisticas');
     fixtureAtualNoModal = fixtureId;
     modal.classList.add('visivel');
-    conteudo.innerHTML = '<div class="modal-loading"><div class="spinner"></div><span>Carregando...</span></div>';
+
+    if (!cacheDetalhesMemoria[fixtureId]) {
+        conteudo.innerHTML = '<div class="modal-loading"><div class="spinner"></div><span>Carregando...</span></div>';
+    } else {
+        renderizarDetalhes(fixtureId, cacheDetalhesMemoria[fixtureId]);
+    }
 
     await carregarDetalhes(fixtureId);
 
@@ -66,7 +72,7 @@ async function abrirMenuDetalhes(fixtureId) {
         clearInterval(atualizacaoDetalhesIntervalo);
         atualizacaoDetalhesIntervalo = setInterval(() => {
             if (fixtureAtualNoModal === fixtureId) carregarDetalhes(fixtureId);
-        }, 30000);
+        }, 15000);
     }
 }
 
@@ -78,12 +84,14 @@ async function carregarDetalhes(fixtureId) {
         const dados = await res.json();
         if (dados.erro) throw new Error(dados.erro);
 
-        if (fixtureAtualNoModal !== fixtureId) return;
+        cacheDetalhesMemoria[fixtureId] = dados;
+        if (fixtureAtualNoModal === fixtureId) renderizarDetalhes(fixtureId, dados);
 
-        renderizarDetalhes(fixtureId, dados);
     } catch (e) {
         if (fixtureAtualNoModal !== fixtureId) return;
-        conteudo.innerHTML = '<div class="modal-erro">Não foi possível carregar os detalhes desta partida.</div>';
+        if (!cacheDetalhesMemoria[fixtureId]) {
+            conteudo.innerHTML = '<div class="modal-erro">Não foi possível carregar os detalhes.</div>';
+        }
     }
 }
 
@@ -331,8 +339,7 @@ async function atualizarPainel() {
     const mainQueue = document.getElementById('main-queue');
     const historyContent = document.getElementById('history-content');
 
-    const fmtData = (d) =>
-        `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
+    const fmtData = (d) => `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
 
     const hoje = new Date();
     const dataInicio = new Date(hoje);
@@ -347,7 +354,6 @@ async function atualizarPainel() {
         if (!response.ok) throw new Error(`HTTP ${response.status}`);
 
         const data = await response.json();
-
         if (data.erro) throw new Error(data.erro);
         if (!data.response || !Array.isArray(data.response)) throw new Error('Formato inesperado');
 
@@ -357,7 +363,6 @@ async function atualizarPainel() {
 
         data.response.forEach(m => {
             cachePartidas[m.fixture.id] = m;
-
             const s = m.fixture.status.short;
             const isLiveStatus = STATUS_LIVE_COM_HT.includes(s);
             const isFinished = STATUS_FIM.includes(s);
@@ -377,9 +382,7 @@ async function atualizarPainel() {
                         somGol.play().catch(() => {});
                     }
                 }
-
                 placaresAnteriores[m.fixture.id] = { home: golsCasa, away: golsFora };
-
             } else if (isFinished) {
                 encerrados.push(m);
             } else {
@@ -396,10 +399,8 @@ async function atualizarPainel() {
             mainQueue.innerHTML = '<div class="sem-jogos">Nenhum jogo<br>nos próximos dias.</div>';
         } else {
             mainQueue.innerHTML = fila.map(m => {
-                const destaqueAtivo = (historicoGols[m.fixture.id] &&
-                    hoje.getTime() - historicoGols[m.fixture.id].timestamp < TEMPO_DESTAQUE_MS)
-                    ? historicoGols[m.fixture.id].time
-                    : null;
+                const destaqueAtivo = (historicoGols[m.fixture.id] && hoje.getTime() - historicoGols[m.fixture.id].timestamp < TEMPO_DESTAQUE_MS)
+                    ? historicoGols[m.fixture.id].time : null;
                 return criarBlocoPartida(m, STATUS_LIVE.includes(m.fixture.status.short), destaqueAtivo);
             }).join('');
         }
@@ -408,6 +409,8 @@ async function atualizarPainel() {
             ? criarBlocoPartida(encerrados[0])
             : '<div style="color:var(--text-muted);text-align:center;font-size:12px;">Sem resultados</div>';
 
+        primeiraCargaMain = false;
+
         const temJogoAoVivo = aoVivo.length > 0;
         const tempoProximaBusca = temJogoAoVivo ? 15000 : 60000;
         
@@ -415,13 +418,14 @@ async function atualizarPainel() {
         window.timerAtualizacao = setTimeout(atualizarPainel, tempoProximaBusca);
 
     } catch (e) {
-        debugLog.innerText = 'Erro de conexão';
-        if (mainQueue.innerHTML.includes('Carregando')) {
-            mainQueue.innerHTML = '<div class="sem-jogos">Erro ao carregar.<br>Tentando novamente...</div>';
+        debugLog.innerText = 'Instabilidade na rede';
+        
+        if (primeiraCargaMain) {
+            mainQueue.innerHTML = '<div class="sem-jogos">Falha ao carregar.<br>Tentando novamente...</div>';
         }
         
         if (window.timerAtualizacao) clearTimeout(window.timerAtualizacao);
-        window.timerAtualizacao = setTimeout(atualizarPainel, 60000);
+        window.timerAtualizacao = setTimeout(atualizarPainel, 15000);
     }
 }
 
