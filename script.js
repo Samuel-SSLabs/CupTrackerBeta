@@ -408,8 +408,14 @@ async function atualizarPainel() {
             }).join('');
         }
 
+        // Em modo torneio mostra os 3 últimos, caso contrário só 1
+        const modoTorneio = document.getElementById('app-layout').classList.contains('modo-torneio');
+        const qtdEncerrados = modoTorneio ? 3 : 1;
+        const tituloHistory = document.getElementById('history-title-label');
+        if (tituloHistory) tituloHistory.innerText = modoTorneio ? 'Últimos Resultados' : 'Último Resultado';
+
         historyContent.innerHTML = encerrados.length > 0
-            ? criarBlocoPartida(encerrados[0])
+            ? encerrados.slice(0, qtdEncerrados).map(m => criarBlocoPartida(m)).join('')
             : '<div style="color:var(--text-muted);text-align:center;font-size:12px;">Sem resultados</div>';
 
         primeiraCargaMain = false;
@@ -448,6 +454,20 @@ document.getElementById('btn-toggle-torneio').addEventListener('click', async fu
         : '<img src="assets/trophy-icon.png" alt="Torneio" class="btn-icon-img"><span class="btn-torneio-label">Torneio</span>';
     this.style.color = ativo ? '#fff' : '';
 
+    if (!ativo) {
+        // Volta history para 1 partida ao fechar
+        const tituloLabel = document.getElementById('history-title-label');
+        if (tituloLabel) tituloLabel.innerText = 'Último Resultado';
+        const historyContent = document.getElementById('history-content');
+        const encerrados = Object.values(cachePartidas)
+            .filter(m => STATUS_FIM.includes(m.fixture.status.short))
+            .sort((a, b) => new Date(b.fixture.date) - new Date(a.fixture.date));
+        if (historyContent && encerrados.length > 0) {
+            historyContent.innerHTML = criarBlocoPartida(encerrados[0]);
+        }
+        return;
+    }
+
     if (ativo) {
         renderizarRecentesTorneio();
         renderizarBracket();
@@ -479,28 +499,64 @@ async function buscarEConstruirTorneio() {
 }
 
 function renderizarRecentesTorneio() {
-    const lista = document.getElementById('torneio-recentes-lista');
+    // Atualiza o history-content do painel principal para mostrar 3 partidas
+    const historyContent = document.getElementById('history-content');
+    const tituloLabel = document.getElementById('history-title-label');
+    if (tituloLabel) tituloLabel.innerText = 'Últimos Resultados';
+
     const encerrados = Object.values(cachePartidas)
         .filter(m => STATUS_FIM.includes(m.fixture.status.short))
         .sort((a, b) => new Date(b.fixture.date) - new Date(a.fixture.date))
         .slice(0, 3);
 
-    if (encerrados.length === 0) {
-        lista.innerHTML = '<div style="color:var(--text-muted);font-size:11px;text-align:center;padding:6px 0;">Sem resultados recentes</div>';
-        return;
+    if (historyContent) {
+        historyContent.innerHTML = encerrados.length > 0
+            ? encerrados.map(m => criarBlocoPartida(m, false, null)).join('')
+            : '<div style="color:var(--text-muted);font-size:11px;text-align:center;padding:6px 0;">Sem resultados recentes</div>';
     }
-    lista.innerHTML = encerrados.map(m => criarBlocoPartida(m, false, null)).join('');
 }
 
 function renderizarBracket() {
+    // Pega partidas de mata-mata do cache (fases eliminatórias)
+    const eliminatorias = Object.values(cachePartidas)
+        .filter(m => {
+            const r = (m.league?.round ?? '').toLowerCase();
+            return !r.includes('group');
+        })
+        .sort((a, b) => new Date(a.fixture.date) - new Date(b.fixture.date));
+
+    let slotIdx = 0;
+    const gerarSlot = () => {
+        const m = eliminatorias[slotIdx++];
+        if (m) {
+            const siglaA = sigla(m.teams.home.name);
+            const siglaB = sigla(m.teams.away.name);
+            const d = new Date(m.fixture.date);
+            const dia = String(d.getDate()).padStart(2,'0');
+            const mes = String(d.getMonth()+1).padStart(2,'0');
+            const hora = d.toLocaleTimeString('pt-BR',{hour:'2-digit',minute:'2-digit'});
+            const golA = m.goals.home !== null ? m.goals.home : '';
+            const golB = m.goals.away !== null ? m.goals.away : '';
+            const placar = (golA !== '' || golB !== '') ? ` ${golA}x${golB}` : '';
+            return `<div class="match-slot">
+                <span class="slot-teams">${siglaA}${placar ? '' : ''} x ${siglaB}${placar}</span>
+                <span class="slot-data">${dia}/${mes} ${hora}</span>
+            </div>`;
+        }
+        return `<div class="match-slot">
+            <span class="slot-teams">TBD x TBD</span>
+            <span class="slot-data">—</span>
+        </div>`;
+    };
+
     const gerarColuna = (qtd) => {
         let html = `<div class="bracket-col">`;
-        for (let i = 0; i < qtd; i++) {
-            html += `<div class="match-slot"><span>TBD</span><span>TBD</span></div>`;
-        }
+        for (let i = 0; i < qtd; i++) html += gerarSlot();
         html += `</div>`;
         return html;
     };
+
+    slotIdx = 0;
     document.getElementById('bracket-left').innerHTML =
         gerarColuna(8) + gerarColuna(4) + gerarColuna(2) + gerarColuna(1);
     document.getElementById('bracket-right').innerHTML =
@@ -514,15 +570,39 @@ function renderizarGrupos(gruposApi) {
         '#FF4A7A','#00E5FF','#A020F0','#4CAF50','#FF9800','#03A9F4'
     ];
 
-    scroller.innerHTML = gruposApi.map((grupo, i) => {
-        const nomeGrupo = grupo[0].group.replace('Group', 'Grupo');
+    // Filtra apenas grupos reais (Group A, Group B … Group L)
+    const gruposValidos = gruposApi.filter(grupo =>
+        /^Group\s+[A-L]$/i.test(grupo[0]?.group ?? '')
+    );
+
+    // Regra Copa 2026: top 2 de cada grupo classificam direto.
+    // Os 4 melhores 3ºs colocados também avançam → marcamos com âmbar.
+    // Coleta todos os 3ºs para ordenar por pontos/saldo depois de montar os cards.
+    const terceiros = gruposValidos
+        .map(g => g[2])
+        .filter(Boolean)
+        .sort((a, b) => {
+            const pts = b.points - a.points;
+            if (pts !== 0) return pts;
+            const sd = (b.goalsDiff ?? 0) - (a.goalsDiff ?? 0);
+            if (sd !== 0) return sd;
+            return (b.goalsFor ?? 0) - (a.goalsFor ?? 0);
+        });
+    const top4TerceiroIds = new Set(terceiros.slice(0, 4).map(t => t.team.id));
+
+    scroller.innerHTML = gruposValidos.map((grupo, i) => {
+        const nomeGrupo = grupo[0].group.replace(/Group/i, 'Grupo');
         const cor = cores[i] || '#ffffff33';
 
         const linhasTime = grupo.map((time, idx) => {
-            const classificado = idx < 2;
-            const corBorda = classificado ? 'var(--green-1)' : 'transparent';
-            const corNome = classificado ? 'var(--text-primary)' : 'var(--text-muted)';
-            const pesoFonte = classificado ? '700' : '400';
+            const top2 = idx < 2;
+            const top4Terceiro = idx === 2 && top4TerceiroIds.has(time.team.id);
+            let corBorda = 'transparent';
+            let corNome = 'var(--text-muted)';
+            let pesoFonte = '400';
+            if (top2) { corBorda = 'var(--green-1)'; corNome = 'var(--text-primary)'; pesoFonte = '700'; }
+            else if (top4Terceiro) { corBorda = 'var(--amber)'; corNome = 'var(--amber)'; pesoFonte = '600'; }
+
             return `
                 <div class="grupo-linha-time" style="border-left-color:${corBorda}">
                     <div class="grupo-linha-esq">
@@ -540,4 +620,4 @@ function renderizarGrupos(gruposApi) {
                 ${linhasTime}
             </div>`;
     }).join('');
-                                                                               }
+        }
