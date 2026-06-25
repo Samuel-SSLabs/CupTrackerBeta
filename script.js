@@ -88,8 +88,56 @@ const CORES_SELECOES = {
     1501: '#F77F00', // Costa do Marfim — laranja
 };
 
-function corSelecao(teamId) {
-    return CORES_SELECOES[teamId] || 'var(--green-1)';
+// Cores alternativas (segundo uniforme / away kit)
+const CORES_ALT = {
+    6:    '#003087', // Brasil — azul
+    26:   '#FFFFFF', // Argentina — branco
+    9:    '#003087', // Espanha — azul
+    2:    '#FFFFFF', // França — branco
+    25:   '#FFFFFF', // Alemanha — branco
+    27:   '#006600', // Portugal — verde
+    10:   '#FFFFFF', // Inglaterra — branco
+    15:   '#003087', // Suíça — azul
+    1118: '#003087', // Holanda — azul
+    12:   '#003087', // Japão — azul
+    8:    '#003087', // Colômbia — azul
+    16:   '#C8102E', // México — vermelho
+    2384: '#C8102E', // EUA — vermelho
+    31:   '#006233', // Marrocos — verde
+    1090: '#C8102E', // Noruega — vermelho
+    5529: '#000000', // Canadá — preto
+    5:    '#FFD700', // Suécia — amarelo
+    3:    '#003087', // Croácia — azul
+    7:    '#000000', // Uruguai — preto
+    17:   '#003087', // Coreia do Sul — azul
+    22:   '#FFFFFF', // Irã — branco
+    32:   '#000000', // Egito — preto
+    1531: '#FFD700', // África do Sul — amarelo
+    20:   '#003087', // Austrália — azul
+    1108: '#C8102E', // Escócia — vermelho
+    1:    '#C8102E', // Bélgica — vermelho
+    1532: '#C8102E', // Argélia — vermelho
+    1113: '#FFD700', // Bósnia — amarelo
+    2380: '#003087', // Paraguai — azul
+    1533: '#C8102E', // Cabo Verde — vermelho
+    1504: '#C60B1E', // Gana — vermelho
+    775:  '#FFFFFF', // Áustria — branco
+    1508: '#FFD100', // Congo DR — amarelo
+    2382: '#003087', // Equador — azul
+};
+
+function corSelecao(homeId, awayId) {
+    const corH = CORES_SELECOES[homeId] || 'var(--green-1)';
+    if (awayId === undefined) return corH; // chamada simples
+    const corA = CORES_SELECOES[awayId] || 'var(--amber)';
+
+    // Detectar conflito: mesma cor ou cores muito parecidas
+    const conflito = corH.toLowerCase() === corA.toLowerCase();
+    const corHFinal = corH;
+    const corAFinal = conflito
+        ? (CORES_ALT[awayId] || 'var(--amber)')
+        : corA;
+    return { home: corHFinal, away: corAFinal };
 }
 
 document.getElementById('btn-teste-audio').addEventListener('click', () => {
@@ -170,8 +218,9 @@ function renderizarDetalhes(fixtureId, dados) {
         const isLive = STATUS_LIVE.includes(statusShort);
         const elapsed = match.fixture.status.elapsed;
         // Cores tema para as barras de estatística
-        const corHome = corSelecao(match.teams.home.id);
-        const corAway = corSelecao(match.teams.away.id);
+        const cores = corSelecao(match.teams.home.id, match.teams.away.id);
+        const corHome = cores.home;
+        const corAway = cores.away;
         // Injetar CSS vars dinamicamente para as barras
         document.getElementById('conteudo-estatisticas').style.setProperty('--bar-home', corHome);
         document.getElementById('conteudo-estatisticas').style.setProperty('--bar-away', corAway);
@@ -652,8 +701,6 @@ function renderizarGrupos(todasEntradas, top8TerceiroIds) {
 
     scroller.innerHTML = gruposValidos.map((grupo, i) => {
         const nomeGrupo = grupo[0].group.replace(/Group/i, 'Grupo');
-        const cor = cores[i] || '#ffffff33';
-
         const linhasTime = grupo.map((time, idx) => {
             const top2 = idx < 2;
             const top4Terceiro = idx === 2 && (top8TerceiroIds?.has(time.team.id) ?? false);
@@ -675,9 +722,9 @@ function renderizarGrupos(todasEntradas, top8TerceiroIds) {
         }).join('');
 
         return `
-            <div class="grupo-card" style="border-color:${cor}">
-                <div class="grupo-card-titulo" style="color:${cor}">${nomeGrupo}</div>
+            <div class="grupo-card">
+                <div class="grupo-card-titulo">${nomeGrupo}</div>
                 ${linhasTime}
             </div>`;
     }).join('');
-}
+                                         }
