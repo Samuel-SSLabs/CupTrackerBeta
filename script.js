@@ -470,7 +470,6 @@ document.getElementById('btn-toggle-torneio').addEventListener('click', async fu
 
     if (ativo) {
         renderizarRecentesTorneio();
-        renderizarBracket();
 
         if (!torneioCarregado) {
             document.getElementById('grupos-rodape').innerHTML =
@@ -487,8 +486,16 @@ async function buscarEConstruirTorneio() {
         const data = await res.json();
         if (!data.response || data.response.length === 0) throw new Error('Sem dados');
 
-        const gruposApi = data.response[0].league.standings;
-        renderizarGrupos(gruposApi);
+        const todasEntradas = data.response[0].league.standings;
+
+        // "Group Stage" = tabela de 3ºs já ordenada pela FIFA (rank 1-8 avançam)
+        const tabelaTerceiros = todasEntradas.find(g => g[0]?.group === 'Group Stage') ?? [];
+        const top8TerceiroIds = new Set(
+            tabelaTerceiros.filter(t => t.rank <= 8).map(t => t.team.id)
+        );
+
+        renderizarGrupos(todasEntradas, top8TerceiroIds);
+        renderizarBracket();
         torneioCarregado = true;
     } catch (e) {
         console.error('Falha ao carregar torneio:', e);
@@ -563,56 +570,17 @@ function renderizarBracket() {
         gerarColuna(1) + gerarColuna(2) + gerarColuna(4) + gerarColuna(8);
 }
 
-function renderizarGrupos(gruposApi) {
+function renderizarGrupos(todasEntradas, top8TerceiroIds) {
     const scroller = document.getElementById('grupos-rodape');
     const cores = [
         '#FF4A7A','#00E5FF','#A020F0','#4CAF50','#FF9800','#03A9F4',
         '#FF4A7A','#00E5FF','#A020F0','#4CAF50','#FF9800','#03A9F4'
     ];
 
-    // Filtra apenas grupos reais (Group A, Group B … Group L)
-    const gruposValidos = gruposApi.filter(grupo =>
+    // Filtra apenas grupos reais (Group A … Group L)
+    const gruposValidos = todasEntradas.filter(grupo =>
         /^Group\s+[A-L]$/i.test(grupo[0]?.group ?? '')
     );
-
-    // Regra Copa 2026: top 2 de cada grupo classificam direto.
-    // Os 8 melhores 3ºs (de 12 grupos) também avançam → marcamos com âmbar.
-    // Critérios de desempate oficiais FIFA (em ordem):
-    //   1. Pontos  2. Saldo de gols  3. Gols marcados
-    //   4. Fair Play (amarelo=-1, vermelho indireto=-3, vermelho direto=-4, amar+verm=-5)
-    //   5. Ranking FIFA (goalsDiff como proxy — API não expõe ranking diretamente)
-
-    function calcFairPlay(time) {
-        // A API de standings expõe penalty points negativos no campo penalty
-        // Usamos o que tiver disponível; se não houver, retorna 0
-        const p = time.penalty ?? {};
-        const amarelos = p.yellow ?? 0;
-        const vermelhoIndireto = p.yellowRed ?? 0; // 2º amarelo = -3
-        const vermelhoDireto   = p.red ?? 0;       // vermelho direto = -4
-        // amar+verm direto (-5) já está contido em amarelos+vermelhoDireto na maioria das APIs
-        return -(amarelos * 1 + vermelhoIndireto * 3 + vermelhoDireto * 4);
-    }
-
-    const terceiros = gruposValidos
-        .map(g => g[2])
-        .filter(Boolean)
-        .sort((a, b) => {
-            // 1. Pontos (maior vence)
-            const pts = b.points - a.points;
-            if (pts !== 0) return pts;
-            // 2. Saldo de gols (maior vence)
-            const sd = (b.goalsDiff ?? 0) - (a.goalsDiff ?? 0);
-            if (sd !== 0) return sd;
-            // 3. Gols marcados (maior vence)
-            const gf = (b.goalsFor ?? 0) - (a.goalsFor ?? 0);
-            if (gf !== 0) return gf;
-            // 4. Fair Play — menos punições (valor menos negativo vence)
-            const fp = calcFairPlay(b) - calcFairPlay(a);
-            if (fp !== 0) return fp;
-            // 5. Ranking FIFA — sem dado direto; mantém ordem da API
-            return 0;
-        });
-    const top8TerceiroIds = new Set(terceiros.slice(0, 8).map(t => t.team.id));
 
     scroller.innerHTML = gruposValidos.map((grupo, i) => {
         const nomeGrupo = grupo[0].group.replace(/Group/i, 'Grupo');
@@ -620,7 +588,7 @@ function renderizarGrupos(gruposApi) {
 
         const linhasTime = grupo.map((time, idx) => {
             const top2 = idx < 2;
-            const top4Terceiro = idx === 2 && top8TerceiroIds.has(time.team.id);
+            const top4Terceiro = idx === 2 && (top8TerceiroIds?.has(time.team.id) ?? false);
             let corBorda = 'transparent';
             let corNome = 'var(--text-muted)';
             let pesoFonte = '400';
@@ -644,4 +612,4 @@ function renderizarGrupos(gruposApi) {
                 ${linhasTime}
             </div>`;
     }).join('');
-            }
+}
