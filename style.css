@@ -401,13 +401,22 @@ body {
 
 /* Modo torneio ativado */
 #app-layout.modo-torneio .painel-jogos {
-    width: 38%;
+    width: 32%;
 }
 #app-layout.modo-torneio .painel-torneio {
-    width: 62%;
+    width: 68%;
     opacity: 1;
     padding: 8px 8px 8px 6px;
     overflow-y: auto;
+}
+/* Em modo torneio o history-block pode crescer para mostrar 3 partidas */
+#app-layout.modo-torneio .history-block {
+    flex-shrink: 1;
+    overflow-y: auto;
+}
+#app-layout.modo-torneio .game-list {
+    flex-shrink: 1;
+    min-height: 0;
 }
 
 /* Quando modo-torneio, tela cresce horizontalmente */
@@ -417,8 +426,8 @@ body {
                 height 0.45s cubic-bezier(0.25, 1, 0.5, 1);
 }
 body.modo-torneio-ativo .tft-screen {
-    width: min(96vw, 820px);
-    height: min(92vh, 560px);
+    width: min(98vw, 980px);
+    height: min(96vh, 680px);
 }
 
 /* =============================================
@@ -443,18 +452,18 @@ body.modo-torneio-ativo .tft-screen {
     border-bottom: 1px solid var(--card-border);
 }
 
-/* Box recentes: 3 partidas compactas */
-#torneio-recentes-lista .match-block {
+/* History em modo torneio: 3 partidas compactas */
+#app-layout.modo-torneio #history-content .match-block {
     padding: 6px 5px;
     margin-bottom: 5px;
     border-radius: 7px;
 }
-#torneio-recentes-lista .match-block:last-child { margin-bottom: 0; }
-#torneio-recentes-lista .score-row { font-size: 17px; }
-#torneio-recentes-lista .tla { font-size: 11px; }
-#torneio-recentes-lista .team-logo { width: 18px; height: 18px; margin: 0 4px; }
-#torneio-recentes-lista .status-time { font-size: 10px; margin-top: 2px; }
-#torneio-recentes-lista .match-minute { font-size: 10px; min-height: 12px; }
+#app-layout.modo-torneio #history-content .match-block:last-child { margin-bottom: 0; }
+#app-layout.modo-torneio #history-content .score-row { font-size: 17px; }
+#app-layout.modo-torneio #history-content .tla { font-size: 11px; }
+#app-layout.modo-torneio #history-content .team-logo { width: 18px; height: 18px; margin: 0 4px; }
+#app-layout.modo-torneio #history-content .status-time { font-size: 10px; margin-top: 2px; }
+#app-layout.modo-torneio #history-content .match-minute { font-size: 10px; min-height: 12px; }
 
 /* =============================================
    CHAVEAMENTO (BRACKET)
@@ -487,22 +496,34 @@ body.modo-torneio-ativo .tft-screen {
     background: #13151a;
     border: 1px solid var(--card-border);
     border-radius: 4px;
-    width: 58px;
-    height: 28px;
+    width: 66px;
+    height: 34px;
     display: flex;
     flex-direction: column;
     justify-content: center;
-    padding: 2px 4px;
+    gap: 1px;
+    padding: 3px 4px;
 }
-.match-slot span {
+.slot-teams {
     font-size: 8px;
-    color: var(--text-muted);
-    font-weight: 600;
+    color: var(--text-primary);
+    font-weight: 700;
     text-align: center;
     white-space: nowrap;
     overflow: hidden;
     text-overflow: ellipsis;
-    line-height: 1.4;
+    line-height: 1.3;
+}
+.slot-data {
+    font-size: 7px;
+    color: var(--amber);
+    font-weight: 500;
+    text-align: center;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    line-height: 1.2;
+    opacity: 0.85;
 }
 .bracket-center {
     display: flex;
