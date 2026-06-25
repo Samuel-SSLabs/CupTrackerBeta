@@ -458,10 +458,11 @@ body.modo-torneio-ativo .tft-screen {
 .torneio-box-bracket .bracket-container {
     flex: 1;
     align-items: stretch;
-    overflow-x: auto;
-    overflow-y: hidden;
+    overflow: hidden;
 }
-.torneio-box-bracket .bracket-side,
+.torneio-box-bracket .bracket-side {
+    align-items: stretch;
+}
 .torneio-box-bracket .bracket-center {
     align-items: center;
 }
@@ -472,28 +473,32 @@ body.modo-torneio-ativo .tft-screen {
     align-items: stretch;
     gap: 3px;
     overflow-x: hidden;
-    padding-bottom: 2px;
+    overflow-y: hidden;
+    /* altura fixa: 8 slots de 52px + gaps = ~430px */
+    height: 430px;
 }
-.bracket-container::-webkit-scrollbar { height: 4px; }
-.bracket-container::-webkit-scrollbar-thumb { background: var(--card-border); border-radius: 2px; }
 
 .bracket-side {
     display: flex;
-    gap: 4px;
-    align-items: center;
+    gap: 3px;
+    align-items: stretch;
 }
+
+/* Cada coluna ocupa toda a altura e distribui slots uniformemente */
 .bracket-col {
     display: flex;
     flex-direction: column;
     justify-content: space-around;
-    gap: 2px;
+    height: 100%;
+    /* slots dentro de uma coluna ficam centralizados nos pares da coluna anterior */
 }
 .match-slot {
     background: #13151a;
     border: 1px solid var(--card-border);
     border-radius: 5px;
-    width: 76px;
-    min-height: 48px;
+    width: 78px;
+    height: 48px;       /* altura fixa — colunas calculam espaçamento em cima disso */
+    flex-shrink: 0;
     display: flex;
     flex-direction: column;
     justify-content: center;
@@ -531,17 +536,18 @@ body.modo-torneio-ativo .tft-screen {
     margin-left: auto;
 }
 .slot-data {
-    font-size: 6.5px;
+    font-size: 9px;
     color: var(--amber);
-    font-weight: 500;
+    font-weight: 600;
     text-align: center;
     white-space: nowrap;
     overflow: hidden;
     text-overflow: ellipsis;
-    opacity: 0.75;
+    opacity: 0.9;
     margin-top: 2px;
+    letter-spacing: 0.2px;
 }
-.final-slot { width: 80px; min-height: 56px; border-color: rgba(255,171,77,0.5); background: rgba(255,171,77,0.05); }
+.final-slot { width: 80px; height: 56px; flex-shrink: 0; border-color: rgba(255,171,77,0.5); background: rgba(255,171,77,0.05); }
 .final-slot .slot-sig { color: var(--amber); }
 .bracket-center {
     display: flex;
@@ -602,6 +608,7 @@ body.modo-torneio-ativo .tft-screen {
     border-bottom: 1px solid var(--card-border);
     letter-spacing: 0.5px;
     text-transform: uppercase;
+    color: var(--text-muted);
 }
 .grupo-linha-time {
     display: flex;
