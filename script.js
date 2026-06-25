@@ -561,13 +561,15 @@ document.getElementById('btn-toggle-torneio').addEventListener('click', async fu
     const layout = document.getElementById('app-layout');
     const ativo = layout.classList.toggle('modo-torneio');
     document.body.classList.toggle('modo-torneio-ativo', ativo);
+    
+    // Altera o texto/ícone do botão dependendo do estado
     this.innerHTML = ativo
         ? '←'
-        : '<img src="assets/trophy-icon.png" alt="Torneio" class="btn-icon-img">';
+        : '<img src="assets/trophy-icon.png" alt="Torneio" class="btn-icon-img" style="width: 20px;">';
     this.style.color = ativo ? '#fff' : '';
 
     if (!ativo) {
-        // Volta history para 1 partida ao fechar
+        // Volta history para 1 partida ao fechar o torneio
         const tituloLabel = document.getElementById('history-title-label');
         if (tituloLabel) tituloLabel.innerText = 'Último Resultado';
         const historyContent = document.getElementById('history-content');
@@ -635,13 +637,51 @@ function renderizarRecentesTorneio() {
     }
 }
 
+function renderizarGrupos(todasEntradas, top8TerceiroIds) {
+    const scroller = document.getElementById('grupos-rodape');
+
+    // Filtra apenas grupos reais (Group A … Group L) e ignora o virtual
+    const gruposValidos = todasEntradas.filter(grupo =>
+        /^Group\s+[A-L]$/i.test(grupo[0]?.group ?? '')
+    );
+
+    scroller.innerHTML = gruposValidos.map((grupo, i) => {
+        const nomeGrupo = grupo[0].group.replace(/Group/i, 'Grupo');
+        const linhasTime = grupo.map((time, idx) => {
+            const top2 = idx < 2;
+            const top4Terceiro = idx === 2 && (top8TerceiroIds?.has(time.team.id) ?? false);
+            let corBorda = 'transparent';
+            let corNome = 'var(--text-muted)';
+            let pesoFonte = '400';
+            if (top2) { corBorda = 'var(--green-1)'; corNome = 'var(--text-primary)'; pesoFonte = '700'; }
+            else if (top4Terceiro) { corBorda = 'var(--amber)'; corNome = 'var(--amber)'; pesoFonte = '600'; }
+
+            return `
+                <div class="grupo-linha-time" style="border-left-color:${corBorda}">
+                    <div class="grupo-linha-esq">
+                        <span class="grupo-rank">${time.rank}</span>
+                        <img src="${time.team.logo}" class="grupo-logo" alt="${time.team.name}">
+                        <span class="grupo-sigla" style="color:${corNome};font-weight:${pesoFonte};">${sigla(time.team.name)}</span>
+                    </div>
+                    <span class="grupo-pts">${time.points}</span>
+                </div>`;
+        }).join('');
+
+        return `
+            <div class="grupo-card">
+                <div class="grupo-card-titulo">${nomeGrupo}</div>
+                ${linhasTime}
+            </div>`;
+    }).join('');
+}
+
 function renderizarBracket() {
     // 1. Filtra os jogos que não são da fase de grupos
     const eliminatorias = Object.values(cachePartidas)
         .filter(m => !((m.league?.round ?? '').toLowerCase().includes('group')))
         .sort((a, b) => new Date(a.fixture.date) - new Date(b.fixture.date));
 
-    // 2. Separa os jogos por fase exata
+    // 2. Separa os jogos por fase
     const fases = {
         'Round of 32': eliminatorias.filter(j => j.league.round.includes('Round of 32')),
         'Round of 16': eliminatorias.filter(j => j.league.round.includes('Round of 16')),
@@ -651,7 +691,7 @@ function renderizarBracket() {
         '3rd Place Final': eliminatorias.filter(j => j.league.round.includes('3rd Place'))
     };
 
-    // 3. Função que gera um slot individual, recebendo o jogo específico
+    // 3. Função para gerar um slot exato
     const gerarSlot = (m) => {
         if (m) {
             const d = new Date(m.fixture.date);
@@ -661,7 +701,6 @@ function renderizarBracket() {
             const golA = m.goals.home !== null ? m.goals.home : '';
             const golB = m.goals.away !== null ? m.goals.away : '';
             
-            // Adicionado o onclick para abrir os detalhes do jogo direto do chaveamento!
             return `<div class="match-slot" style="cursor: pointer;" onclick="abrirMenuDetalhes(${m.fixture.id})">
                 <div class="slot-team-row">
                     <img src="${m.teams.home.logo}" class="slot-logo" alt="${m.teams.home.name}">
@@ -677,7 +716,6 @@ function renderizarBracket() {
             </div>`;
         }
         
-        // Retorna o TBD se a partida ainda não estiver definida na API
         return `<div class="match-slot slot-tbd">
             <div class="slot-team-row"><span class="slot-sig tbd">TBD</span></div>
             <div class="slot-team-row"><span class="slot-sig tbd">TBD</span></div>
@@ -685,7 +723,7 @@ function renderizarBracket() {
         </div>`;
     };
 
-    // 4. Função que gera a coluna puxando os jogos da fase específica com o offset (deslocamento)
+    // 4. Função que gera a coluna com o deslocamento (offset)
     const gerarColuna = (qtd, jogosDaFase, offset = 0) => {
         let html = `<div class="bracket-col">`;
         for (let i = 0; i < qtd; i++) {
@@ -695,21 +733,21 @@ function renderizarBracket() {
         return html;
     };
 
-    // 5. Constrói o Lado Esquerdo (Primeira metade dos confrontos)
+    // Lado Esquerdo
     document.getElementById('bracket-left').innerHTML =
         gerarColuna(8, fases['Round of 32'], 0) + 
         gerarColuna(4, fases['Round of 16'], 0) + 
         gerarColuna(2, fases['Quarter-finals'], 0) + 
         gerarColuna(1, fases['Semi-finals'], 0);
 
-    // 6. Constrói o Lado Direito (Segunda metade dos confrontos, lido de trás pra frente)
+    // Lado Direito
     document.getElementById('bracket-right').innerHTML =
         gerarColuna(1, fases['Semi-finals'], 1) + 
         gerarColuna(2, fases['Quarter-finals'], 2) + 
         gerarColuna(4, fases['Round of 16'], 4) + 
         gerarColuna(8, fases['Round of 32'], 8);
 
-    // 7. Finais e Disputa de 3º Lugar (Centro)
+    // Finais (Centro)
     const finalDiv = document.getElementById('bracket-final');
     if (finalDiv) {
         const finalJogo = fases['Final'][0];
