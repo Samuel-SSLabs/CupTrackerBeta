@@ -8,31 +8,85 @@
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
-    
     <link rel="stylesheet" href="style.css">
 </head>
 <body>
+
     <div id="debug-log">Conectando...</div>
-    
+
     <div class="tft-screen">
-        <div class="header">
-            <span>COPA 2026</span>
-            <button id="btn-teste-audio" title="Testar Áudio">
-                <img src="assets/favicon.ico" alt="Testar Áudio">
-            </button>
-        </div>
-        
-        <div class="game-list" id="main-queue">
-            <div class="sem-jogos">Carregando...</div>
-        </div>
-        
-        <div class="history-block">
-            <div class="history-title">Último Resultado</div>
-            <div id="history-content">
-                <div style="color: var(--text-muted); text-align: center; font-size: 12px;">Aguardando dados...</div>
+
+        <!-- CABEÇALHO -->
+        <header class="header">
+            <span class="header-title">COPA 2026</span>
+            <div class="header-actions">
+                <button id="btn-teste-audio" class="icon-btn" title="Testar Som">
+                    <img src="assets/favicon.ico" alt="Testar Som">
+                </button>
+                <button id="btn-toggle-torneio" class="icon-btn highlight-btn" title="Ver Torneio">
+                    <img src="assets/trophy-icon.png" alt="Torneio" class="btn-icon-img">
+                    <span class="btn-torneio-label">Torneio</span>
+                </button>
+            </div>
+        </header>
+
+        <!-- LAYOUT PRINCIPAL DESLIZANTE -->
+        <div id="app-layout" class="layout-jogos">
+
+            <!-- COLUNA ESQUERDA: painel de partidas -->
+            <div class="painel-jogos">
+                <div class="game-list" id="main-queue">
+                    <div class="sem-jogos">Carregando...</div>
+                </div>
+
+                <div class="history-block">
+                    <div class="history-title">Último Resultado</div>
+                    <div id="history-content">
+                        <div style="color:var(--text-muted);text-align:center;font-size:12px;">Aguardando dados...</div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- COLUNA DIREITA: painel de torneio (oculto por padrão) -->
+            <div class="painel-torneio">
+
+                <!-- Últimos Resultados (3 jogos) -->
+                <div class="torneio-box" id="box-recentes">
+                    <div class="torneio-box-title">Últimos Resultados</div>
+                    <div id="torneio-recentes-lista"></div>
+                </div>
+
+                <!-- Chaveamento -->
+                <div class="torneio-box torneio-box-bracket">
+                    <div class="torneio-box-title">Chaveamento</div>
+                    <div class="bracket-container">
+                        <div class="bracket-side side-left" id="bracket-left"></div>
+                        <div class="bracket-center">
+                            <div class="final-box">
+                                <span class="center-title">FINAL</span>
+                                <div class="match-slot final-slot"></div>
+                            </div>
+                            <div class="bronze-box">
+                                <span class="center-title">3º LUGAR</span>
+                                <div class="match-slot"></div>
+                            </div>
+                        </div>
+                        <div class="bracket-side side-right" id="bracket-right"></div>
+                    </div>
+                </div>
+
+                <!-- Carrossel de Grupos -->
+                <div class="torneio-box">
+                    <div class="torneio-box-title">Grupos</div>
+                    <div class="grupos-carousel-container">
+                        <div class="grupos-scroller" id="grupos-rodape"></div>
+                    </div>
+                </div>
+
             </div>
         </div>
-        
+
+        <!-- MODAL DE DETALHES -->
         <div id="modal-detalhes">
             <div class="modal-header">
                 <button id="btn-voltar" onclick="fecharModal()" title="Voltar">&#8592;</button>
@@ -45,8 +99,9 @@
                 </div>
             </div>
         </div>
+
     </div>
-    
+
     <div class="powered-by">
         <span>Powered by</span>
         <div class="powered-by-logos">
@@ -54,7 +109,7 @@
             <img src="assets/logo-parceiro.png" alt="Logo Parceiro">
         </div>
     </div>
-    
+
     <script src="script.js"></script>
 </body>
 </html>
