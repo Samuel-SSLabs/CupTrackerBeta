@@ -117,7 +117,7 @@ body {
 
 #modal-detalhes.visivel { transform: translateX(0); }
 .modal-header { background: linear-gradient(135deg, var(--green-1), var(--green-2)); height: 42px; display: flex; align-items: center; padding: 0 10px; gap: 10px; border-bottom: 2px solid rgba(255,196,0,0.6); flex-shrink: 0; }
-#btn-voltar { background: none; border: none; cursor: pointer; color: #fff; font-size: 20px; line-height: 1; padding: 4px 6px; border-radius: 6px; transition: background-color 0.2s, transform 0.2s; display: flex; align-items: center; }
+#btn-voltar { background: none; border: none; cursor: pointer; color: #fff; font-size: 22px; line-height: 1; padding: 4px 8px; border-radius: 6px; transition: background-color 0.2s, transform 0.2s; display: flex; align-items: center; }
 #btn-voltar:hover { background-color: rgba(255,255,255,0.18); transform: scale(1.1); }
 #btn-voltar:active { transform: scale(0.92); }
 .modal-titulo { color: #fff; font-size: 14px; font-weight: 700; letter-spacing: 1px; flex: 1; text-align: center; padding-right: 32px; }
@@ -155,8 +155,8 @@ body {
     overflow: hidden;
     background: #1e2024;
 }
-.stat-barra-home { height: 100%; background: var(--green-1); border-radius: 4px 0 0 4px; transition: width 0.8s cubic-bezier(0.4, 0, 0.2, 1); }
-.stat-barra-away { height: 100%; background: var(--amber); border-radius: 0 4px 4px 0; transition: width 0.8s cubic-bezier(0.4, 0, 0.2, 1); }
+.stat-barra-home { height: 100%; background: var(--bar-home, var(--green-1)); border-radius: 4px 0 0 4px; transition: width 0.8s cubic-bezier(0.4, 0, 0.2, 1); }
+.stat-barra-away { height: 100%; background: var(--bar-away, var(--amber)); border-radius: 0 4px 4px 0; transition: width 0.8s cubic-bezier(0.4, 0, 0.2, 1); }
 
 /* EVENTOS — layout: [min'] | col-home | col-away */
 
@@ -407,7 +407,7 @@ body {
                 height 0.45s cubic-bezier(0.25, 1, 0.5, 1);
 }
 body.modo-torneio-ativo .tft-screen {
-    width: min(98vw, 980px);
+    width: min(99vw, 1140px);
     height: min(98vh, 820px);
 }
 
@@ -469,9 +469,9 @@ body.modo-torneio-ativo .tft-screen {
 .bracket-container {
     display: flex;
     justify-content: space-between;
-    align-items: center;
-    gap: 4px;
-    overflow-x: auto;
+    align-items: stretch;
+    gap: 3px;
+    overflow-x: hidden;
     padding-bottom: 2px;
 }
 .bracket-container::-webkit-scrollbar { height: 4px; }
@@ -486,41 +486,63 @@ body.modo-torneio-ativo .tft-screen {
     display: flex;
     flex-direction: column;
     justify-content: space-around;
-    gap: 3px;
+    gap: 2px;
 }
 .match-slot {
     background: #13151a;
     border: 1px solid var(--card-border);
-    border-radius: 4px;
-    width: 66px;
-    height: 34px;
+    border-radius: 5px;
+    width: 76px;
+    min-height: 48px;
     display: flex;
     flex-direction: column;
     justify-content: center;
     gap: 1px;
-    padding: 3px 4px;
+    padding: 4px 5px;
+    position: relative;
 }
-.slot-teams {
+.slot-tbd { opacity: 0.45; }
+.slot-team-row {
+    display: flex;
+    align-items: center;
+    gap: 3px;
+    height: 14px;
+}
+.slot-logo {
+    width: 12px;
+    height: 12px;
+    object-fit: contain;
+    flex-shrink: 0;
+}
+.slot-sig {
     font-size: 8px;
     color: var(--text-primary);
     font-weight: 700;
-    text-align: center;
+    flex: 1;
     white-space: nowrap;
     overflow: hidden;
     text-overflow: ellipsis;
-    line-height: 1.3;
+}
+.slot-sig.tbd { color: var(--text-muted); }
+.slot-score {
+    font-size: 9px;
+    font-weight: 800;
+    color: var(--amber);
+    margin-left: auto;
 }
 .slot-data {
-    font-size: 7px;
+    font-size: 6.5px;
     color: var(--amber);
     font-weight: 500;
     text-align: center;
     white-space: nowrap;
     overflow: hidden;
     text-overflow: ellipsis;
-    line-height: 1.2;
-    opacity: 0.85;
+    opacity: 0.75;
+    margin-top: 2px;
 }
+.final-slot { width: 80px; min-height: 56px; border-color: rgba(255,171,77,0.5); background: rgba(255,171,77,0.05); }
+.final-slot .slot-sig { color: var(--amber); }
 .bracket-center {
     display: flex;
     flex-direction: column;
@@ -619,4 +641,4 @@ body.modo-torneio-ativo .tft-screen {
     font-weight: 700;
     font-size: 12px;
     padding-right: 2px;
-    }
+}
