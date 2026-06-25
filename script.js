@@ -561,15 +561,13 @@ document.getElementById('btn-toggle-torneio').addEventListener('click', async fu
     const layout = document.getElementById('app-layout');
     const ativo = layout.classList.toggle('modo-torneio');
     document.body.classList.toggle('modo-torneio-ativo', ativo);
-    
-    // Altera o texto/ícone do botão dependendo do estado
     this.innerHTML = ativo
         ? '←'
-        : '<img src="assets/trophy-icon.png" alt="Torneio" class="btn-icon-img" style="width: 20px;">';
+        : '<img src="assets/trophy-icon.png" alt="Torneio" class="btn-icon-img">';
     this.style.color = ativo ? '#fff' : '';
 
     if (!ativo) {
-        // Volta history para 1 partida ao fechar o torneio
+        // Volta history para 1 partida ao fechar
         const tituloLabel = document.getElementById('history-title-label');
         if (tituloLabel) tituloLabel.innerText = 'Último Resultado';
         const historyContent = document.getElementById('history-content');
@@ -585,6 +583,10 @@ document.getElementById('btn-toggle-torneio').addEventListener('click', async fu
     if (ativo) {
         renderizarRecentesTorneio();
 
+        if (torneioCarregado) {
+            renderizarBracket(null); // atualiza com cache de partidas existente
+        }
+
         if (!torneioCarregado) {
             document.getElementById('grupos-rodape').innerHTML =
                 '<span style="color:var(--text-muted);font-size:11px;padding:10px;display:block;text-align:center;">Carregando grupos...</span>';
@@ -595,7 +597,6 @@ document.getElementById('btn-toggle-torneio').addEventListener('click', async fu
 
 async function buscarEConstruirTorneio() {
     try {
-        // 1. Busca os Grupos (Pontuação e Classificação)
         const res = await fetch(`${URL_PROXY}?action=standings`);
         if (!res.ok) throw new Error('Erro na rede');
         const data = await res.json();
@@ -610,25 +611,8 @@ async function buscarEConstruirTorneio() {
         );
 
         renderizarGrupos(todasEntradas, top8TerceiroIds);
-
-        // 2. BUSCA PROFUNDA DO MATA-MATA (Até o fim da Copa)
-        const hoje = new Date();
-        const dataInicio = `${hoje.getFullYear()}-${String(hoje.getMonth() + 1).padStart(2, '0')}-${String(hoje.getDate()).padStart(2, '0')}`;
-        // Faz a varredura de hoje até o dia posterior à Final da Copa
-        const resMataMata = await fetch(`${URL_PROXY}?dateFrom=${dataInicio}&dateTo=2026-07-20`);
-        const dataMataMata = await resMataMata.json();
-
-        if (dataMataMata.response) {
-            // Injeta as partidas futuras no nosso cache global
-            dataMataMata.response.forEach(m => {
-                cachePartidas[m.fixture.id] = m;
-            });
-        }
-
-        // 3. Renderiza o chaveamento com todos os dados novos
-        renderizarBracket();
+        renderizarBracket(todasEntradas);
         torneioCarregado = true;
-        
     } catch (e) {
         console.error('Falha ao carregar torneio:', e);
         document.getElementById('grupos-rodape').innerHTML =
@@ -655,10 +639,127 @@ function renderizarRecentesTorneio() {
     }
 }
 
+function renderizarBracket(standingsData) {
+    // ── 1. Classificados da fase de grupos (32 times com description "Round of 32")
+    // Ordem oficial FIFA para o chaveamento dos 16-avos:
+    // Slot 1: 1ºA vs 3º(D/E/F), Slot 2: 1ºB vs 3º(A/C/D) ... etc.
+    // Como o sorteio ainda não aconteceu, exibimos os classificados por grupo em ordem.
+    const classificadosPorGrupo = {}; // { 'A': [1º, 2º], 'B': [...], ... }
+
+    if (standingsData) {
+        standingsData
+            .filter(g => /^Group [A-L]$/i.test(g[0]?.group ?? ''))
+            .forEach(grupo => {
+                const letra = grupo[0].group.replace('Group ', '');
+                classificadosPorGrupo[letra] = grupo
+                    .filter(t => t.description === 'Round of 32')
+                    .slice(0, 2);
+            });
+    }
+
+    // Partidas eliminatórias reais do cache (quando existirem)
+    const eliminatorias = Object.values(cachePartidas)
+        .filter(m => !((m.league?.round ?? '').toLowerCase().includes('group')))
+        .sort((a, b) => new Date(a.fixture.date) - new Date(b.fixture.date));
+
+    // ── 2. Slot builder
+    let elimIdx = 0;
+    // times classificados em ordem A1,A2,B1,B2,...,L1,L2 + 8 terceiros
+    const grupoOrdem = ['A','B','C','D','E','F','G','H','I','J','K','L'];
+    const timesOrdenados = [];
+    grupoOrdem.forEach(l => {
+        const g = classificadosPorGrupo[l] || [];
+        g.forEach(t => timesOrdenados.push(t));
+    });
+    // Adiciona 3ºs classificados (já vêm do standingsData passado por buscarEConstruirTorneio)
+    if (standingsData) {
+        const terceiros = standingsData
+            .find(g => g[0]?.group === 'Group Stage') ?? [];
+        terceiros.filter(t => t.description === 'Round of 32')
+            .forEach(t => timesOrdenados.push(t));
+    }
+
+    let timeIdx = 0;
+
+    const gerarSlot = (fase) => {
+        // Tenta usar partida real primeiro
+        const m = eliminatorias[elimIdx];
+        if (m) {
+            elimIdx++;
+            const d = new Date(m.fixture.date);
+            const dia = String(d.getDate()).padStart(2,'0');
+            const mes = String(d.getMonth()+1).padStart(2,'0');
+            const hora = d.toLocaleTimeString('pt-BR',{hour:'2-digit',minute:'2-digit'});
+            const golH = m.goals.home;
+            const golA = m.goals.away;
+            const temGol = golH !== null && golA !== null;
+            const winnerHome = m.teams.home.winner === true;
+            const winnerAway = m.teams.away.winner === true;
+            return `<div class="match-slot">
+                <div class="slot-team-row ${winnerHome ? 'slot-winner' : ''}">
+                    <img src="${m.teams.home.logo}" class="slot-logo">
+                    <span class="slot-sig">${sigla(m.teams.home.name)}</span>
+                    ${temGol ? `<span class="slot-score ${winnerHome ? 'slot-score-win' : ''}">${golH}</span>` : ''}
+                </div>
+                <div class="slot-team-row ${winnerAway ? 'slot-winner' : ''}">
+                    <img src="${m.teams.away.logo}" class="slot-logo">
+                    <span class="slot-sig">${sigla(m.teams.away.name)}</span>
+                    ${temGol ? `<span class="slot-score ${winnerAway ? 'slot-score-win' : ''}">${golA}</span>` : ''}
+                </div>
+                <span class="slot-data">${dia}/${mes} ${hora}</span>
+            </div>`;
+        }
+
+        // Sem partida real: usa classificados dos grupos (só na fase de 16-avos)
+        if (fase === 'r32') {
+            const tA = timesOrdenados[timeIdx++];
+            const tB = timesOrdenados[timeIdx++];
+            const rowA = tA
+                ? `<img src="${tA.team.logo}" class="slot-logo"><span class="slot-sig">${sigla(tA.team.name)}</span>`
+                : `<span class="slot-sig tbd">TBD</span>`;
+            const rowB = tB
+                ? `<img src="${tB.team.logo}" class="slot-logo"><span class="slot-sig">${sigla(tB.team.name)}</span>`
+                : `<span class="slot-sig tbd">TBD</span>`;
+            return `<div class="match-slot">
+                <div class="slot-team-row">${rowA}</div>
+                <div class="slot-team-row">${rowB}</div>
+                <span class="slot-data">A definir</span>
+            </div>`;
+        }
+
+        // Fases seguintes: TBD
+        return `<div class="match-slot slot-tbd">
+            <div class="slot-team-row"><span class="slot-sig tbd">TBD</span></div>
+            <div class="slot-team-row"><span class="slot-sig tbd">TBD</span></div>
+            <span class="slot-data">—</span>
+        </div>`;
+    };
+
+    // ── 3. Gerar colunas com gap proporcional (centralização visual)
+    // A altura total é fixa. Cada coluna tem N slots de altura H com gap proporcional.
+    // justify-content: space-around distribui automaticamente.
+    const gerarColuna = (qtd, fase) => {
+        let html = `<div class="bracket-col" data-slots="${qtd}">`;
+        for (let i = 0; i < qtd; i++) html += gerarSlot(fase);
+        html += `</div>`;
+        return html;
+    };
+
+    elimIdx = 0; timeIdx = 0;
+    document.getElementById('bracket-left').innerHTML =
+        gerarColuna(8, 'r32') + gerarColuna(4, 'r16') + gerarColuna(2, 'qf') + gerarColuna(1, 'sf');
+    document.getElementById('bracket-right').innerHTML =
+        gerarColuna(1, 'sf') + gerarColuna(2, 'qf') + gerarColuna(4, 'r16') + gerarColuna(8, 'r32');
+}
+
 function renderizarGrupos(todasEntradas, top8TerceiroIds) {
     const scroller = document.getElementById('grupos-rodape');
+    const cores = [
+        '#FF4A7A','#00E5FF','#A020F0','#4CAF50','#FF9800','#03A9F4',
+        '#FF4A7A','#00E5FF','#A020F0','#4CAF50','#FF9800','#03A9F4'
+    ];
 
-    // Filtra apenas grupos reais (Group A … Group L) e ignora o virtual
+    // Filtra apenas grupos reais (Group A … Group L)
     const gruposValidos = todasEntradas.filter(grupo =>
         /^Group\s+[A-L]$/i.test(grupo[0]?.group ?? '')
     );
@@ -691,109 +792,4 @@ function renderizarGrupos(todasEntradas, top8TerceiroIds) {
                 ${linhasTime}
             </div>`;
     }).join('');
-}
-
-function renderizarBracket() {
-    // 1. Filtra os jogos que não são da fase de grupos
-    const eliminatorias = Object.values(cachePartidas)
-        .filter(m => !((m.league?.round ?? '').toLowerCase().includes('group')))
-        .sort((a, b) => new Date(a.fixture.date) - new Date(b.fixture.date));
-
-    // 2. Separa os jogos por fase
-    const fases = {
-        'Round of 32': eliminatorias.filter(j => j.league.round.includes('Round of 32')),
-        'Round of 16': eliminatorias.filter(j => j.league.round.includes('Round of 16')),
-        'Quarter-finals': eliminatorias.filter(j => j.league.round.includes('Quarter-finals')),
-        'Semi-finals': eliminatorias.filter(j => j.league.round.includes('Semi-finals')),
-        'Final': eliminatorias.filter(j => j.league.round === 'Final'),
-        '3rd Place Final': eliminatorias.filter(j => j.league.round.includes('3rd Place'))
-    };
-
- // 3. Função para gerar um slot exato (À PROVA DE FALHAS PARA JOGOS INCOMPLETOS)
-    const gerarSlot = (m) => {
-        if (m) {
-            const d = new Date(m.fixture.date);
-            const dia = String(d.getDate()).padStart(2, '0');
-            const mes = String(d.getMonth() + 1).padStart(2, '0');
-            const hora = d.toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' });
-            
-            // Proteção contra times não definidos (Null/TBD)
-            const nomeHome = m.teams.home?.name;
-            const nomeAway = m.teams.away?.name;
-            
-            const siglaA = nomeHome ? sigla(nomeHome) : 'TBD';
-            const siglaB = nomeAway ? sigla(nomeAway) : 'TBD';
-            
-            // Se não tiver logo, carrega um pixel transparente ou deixa vazio
-            const logoA = m.teams.home?.logo || 'data:image/svg+xml;utf8,<svg xmlns="http://www.w3.org/2000/svg" width="1" height="1"></svg>';
-            const logoB = m.teams.away?.logo || 'data:image/svg+xml;utf8,<svg xmlns="http://www.w3.org/2000/svg" width="1" height="1"></svg>';
-
-            const golA = m.goals.home !== null ? m.goals.home : '';
-            const golB = m.goals.away !== null ? m.goals.away : '';
-            
-            return `<div class="match-slot" style="cursor: pointer;" onclick="abrirMenuDetalhes(${m.fixture.id})">
-                <div class="slot-team-row">
-                    <img src="${logoA}" class="slot-logo" alt="${siglaA}">
-                    <span class="slot-sig ${siglaA === 'TBD' ? 'tbd' : ''}">${siglaA}</span>
-                    ${golA !== '' ? `<span class="slot-score">${golA}</span>` : ''}
-                </div>
-                <div class="slot-team-row">
-                    <img src="${logoB}" class="slot-logo" alt="${siglaB}">
-                    <span class="slot-sig ${siglaB === 'TBD' ? 'tbd' : ''}">${siglaB}</span>
-                    ${golB !== '' ? `<span class="slot-score">${golB}</span>` : ''}
-                </div>
-                <span class="slot-data">${dia}/${mes} ${hora}</span>
-            </div>`;
-        }
-        
-        // Retorna o TBD total se a API não enviou a partida em si
-        return `<div class="match-slot slot-tbd">
-            <div class="slot-team-row"><span class="slot-sig tbd">TBD</span></div>
-            <div class="slot-team-row"><span class="slot-sig tbd">TBD</span></div>
-            <span class="slot-data">—</span>
-        </div>`;
-    };
-
-    // 4. Função que gera a coluna com o deslocamento (offset)
-    const gerarColuna = (qtd, jogosDaFase, offset = 0) => {
-        let html = `<div class="bracket-col">`;
-        for (let i = 0; i < qtd; i++) {
-            html += gerarSlot(jogosDaFase[i + offset]);
-        }
-        html += `</div>`;
-        return html;
-    };
-
-    // Lado Esquerdo
-    document.getElementById('bracket-left').innerHTML =
-        gerarColuna(8, fases['Round of 32'], 0) + 
-        gerarColuna(4, fases['Round of 16'], 0) + 
-        gerarColuna(2, fases['Quarter-finals'], 0) + 
-        gerarColuna(1, fases['Semi-finals'], 0);
-
-    // Lado Direito
-    document.getElementById('bracket-right').innerHTML =
-        gerarColuna(1, fases['Semi-finals'], 1) + 
-        gerarColuna(2, fases['Quarter-finals'], 2) + 
-        gerarColuna(4, fases['Round of 16'], 4) + 
-        gerarColuna(8, fases['Round of 32'], 8);
-
-    // Finais (Centro)
-    const finalDiv = document.getElementById('bracket-final');
-    if (finalDiv) {
-        const finalJogo = fases['Final'][0];
-        finalDiv.innerHTML = `
-            <span class="center-title">FINAL</span>
-            ${gerarSlot(finalJogo)}
-        `;
-    }
-
-    const bronzeDiv = document.getElementById('bracket-bronze');
-    if (bronzeDiv) {
-        const bronzeJogo = fases['3rd Place Final'][0];
-        bronzeDiv.innerHTML = `
-            <span class="center-title" style="color: var(--text-muted); margin-top: 15px;">3º LUGAR</span>
-            ${gerarSlot(bronzeJogo)}
-        `;
-    }
 }
