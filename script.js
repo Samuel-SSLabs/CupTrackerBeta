@@ -595,6 +595,7 @@ document.getElementById('btn-toggle-torneio').addEventListener('click', async fu
 
 async function buscarEConstruirTorneio() {
     try {
+        // 1. Busca os Grupos (Pontuação e Classificação)
         const res = await fetch(`${URL_PROXY}?action=standings`);
         if (!res.ok) throw new Error('Erro na rede');
         const data = await res.json();
@@ -609,8 +610,25 @@ async function buscarEConstruirTorneio() {
         );
 
         renderizarGrupos(todasEntradas, top8TerceiroIds);
+
+        // 2. BUSCA PROFUNDA DO MATA-MATA (Até o fim da Copa)
+        const hoje = new Date();
+        const dataInicio = `${hoje.getFullYear()}-${String(hoje.getMonth() + 1).padStart(2, '0')}-${String(hoje.getDate()).padStart(2, '0')}`;
+        // Faz a varredura de hoje até o dia posterior à Final da Copa
+        const resMataMata = await fetch(`${URL_PROXY}?dateFrom=${dataInicio}&dateTo=2026-07-20`);
+        const dataMataMata = await resMataMata.json();
+
+        if (dataMataMata.response) {
+            // Injeta as partidas futuras no nosso cache global
+            dataMataMata.response.forEach(m => {
+                cachePartidas[m.fixture.id] = m;
+            });
+        }
+
+        // 3. Renderiza o chaveamento com todos os dados novos
         renderizarBracket();
         torneioCarregado = true;
+        
     } catch (e) {
         console.error('Falha ao carregar torneio:', e);
         document.getElementById('grupos-rodape').innerHTML =
