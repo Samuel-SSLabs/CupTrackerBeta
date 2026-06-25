@@ -451,7 +451,7 @@ document.getElementById('btn-toggle-torneio').addEventListener('click', async fu
     document.body.classList.toggle('modo-torneio-ativo', ativo);
     this.innerHTML = ativo
         ? '⬅ Voltar'
-        : '<img src="assets/trophy-icon.png" alt="Torneio" class="btn-icon-img"><span class="btn-torneio-label">Torneio</span>';
+        : '<img src="assets/trophy-icon.png" alt="Torneio" class="btn-icon-img">';
     this.style.color = ativo ? '#fff' : '';
 
     if (!ativo) {
@@ -620,4 +620,4 @@ function renderizarGrupos(gruposApi) {
                 ${linhasTime}
             </div>`;
     }).join('');
-        }
+}
