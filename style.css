@@ -54,7 +54,6 @@ body {
     letter-spacing: 1.5px;
     border-bottom: 2px solid rgba(255,196,0,0.6);
     flex-shrink: 0;
-    position: relative;
 }
 
 /* btn-teste-audio herda estilos do .icon-btn — sem position:absolute */
@@ -101,7 +100,7 @@ body {
 .live .status-time { color: var(--amber); font-weight: 600; }
 .live-dot { width: 6px; height: 6px; border-radius: 50%; background-color: var(--amber); display: inline-block; animation: pulsarPonto 1.4s ease-in-out infinite; }
 
-#debug-log { position: absolute; top: 10px; left: 12px; color: #6fffa0; font-size: 9px; font-weight: 500; letter-spacing: 0.5px; text-transform: uppercase; z-index: 10; opacity: 0.85; }
+#debug-log { position: absolute; top: 6px; left: 8px; color: #6fffa0; font-size: 8px; font-weight: 500; letter-spacing: 0.5px; text-transform: uppercase; z-index: 0; opacity: 0.7; pointer-events: none; }
 .sem-jogos { color: var(--text-muted); text-align: center; margin-top: 50px; font-size: 13px; line-height: 1.6; }
 
 /* MODAL */
@@ -298,6 +297,8 @@ body {
     display: flex;
     gap: 6px;
     align-items: center;
+    position: relative;
+    z-index: 2;
 }
 .icon-btn {
     background: rgba(255,255,255,0.08);
@@ -618,4 +619,4 @@ body.modo-torneio-ativo .tft-screen {
     font-weight: 700;
     font-size: 12px;
     padding-right: 2px;
-}
+    }
