@@ -691,31 +691,44 @@ function renderizarBracket() {
         '3rd Place Final': eliminatorias.filter(j => j.league.round.includes('3rd Place'))
     };
 
-    // 3. Função para gerar um slot exato
+ // 3. Função para gerar um slot exato (À PROVA DE FALHAS PARA JOGOS INCOMPLETOS)
     const gerarSlot = (m) => {
         if (m) {
             const d = new Date(m.fixture.date);
             const dia = String(d.getDate()).padStart(2, '0');
             const mes = String(d.getMonth() + 1).padStart(2, '0');
             const hora = d.toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' });
+            
+            // Proteção contra times não definidos (Null/TBD)
+            const nomeHome = m.teams.home?.name;
+            const nomeAway = m.teams.away?.name;
+            
+            const siglaA = nomeHome ? sigla(nomeHome) : 'TBD';
+            const siglaB = nomeAway ? sigla(nomeAway) : 'TBD';
+            
+            // Se não tiver logo, carrega um pixel transparente ou deixa vazio
+            const logoA = m.teams.home?.logo || 'data:image/svg+xml;utf8,<svg xmlns="http://www.w3.org/2000/svg" width="1" height="1"></svg>';
+            const logoB = m.teams.away?.logo || 'data:image/svg+xml;utf8,<svg xmlns="http://www.w3.org/2000/svg" width="1" height="1"></svg>';
+
             const golA = m.goals.home !== null ? m.goals.home : '';
             const golB = m.goals.away !== null ? m.goals.away : '';
             
             return `<div class="match-slot" style="cursor: pointer;" onclick="abrirMenuDetalhes(${m.fixture.id})">
                 <div class="slot-team-row">
-                    <img src="${m.teams.home.logo}" class="slot-logo" alt="${m.teams.home.name}">
-                    <span class="slot-sig">${sigla(m.teams.home.name)}</span>
+                    <img src="${logoA}" class="slot-logo" alt="${siglaA}">
+                    <span class="slot-sig ${siglaA === 'TBD' ? 'tbd' : ''}">${siglaA}</span>
                     ${golA !== '' ? `<span class="slot-score">${golA}</span>` : ''}
                 </div>
                 <div class="slot-team-row">
-                    <img src="${m.teams.away.logo}" class="slot-logo" alt="${m.teams.away.name}">
-                    <span class="slot-sig">${sigla(m.teams.away.name)}</span>
+                    <img src="${logoB}" class="slot-logo" alt="${siglaB}">
+                    <span class="slot-sig ${siglaB === 'TBD' ? 'tbd' : ''}">${siglaB}</span>
                     ${golB !== '' ? `<span class="slot-score">${golB}</span>` : ''}
                 </div>
                 <span class="slot-data">${dia}/${mes} ${hora}</span>
             </div>`;
         }
         
+        // Retorna o TBD total se a API não enviou a partida em si
         return `<div class="match-slot slot-tbd">
             <div class="slot-team-row"><span class="slot-sig tbd">TBD</span></div>
             <div class="slot-team-row"><span class="slot-sig tbd">TBD</span></div>
