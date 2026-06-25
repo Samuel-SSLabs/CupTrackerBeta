@@ -182,7 +182,7 @@ function renderizarDetalhes(fixtureId, dados) {
             return `
                 <div class="stat-row">
                     <span class="stat-val">${exibeH}</span>
-                    <div style="flex:1;display:flex;flex-direction:column;gap:3px;">
+                    <div class="stat-col-center">
                         <span class="stat-nome">${item.label}</span>
                         <div class="stat-barra-container">
                             <div class="stat-barra-home" style="width:${pctH}%"></div>
@@ -433,3 +433,111 @@ async function atualizarPainel() {
 }
 
 atualizarPainel();
+
+/* =============================================
+   PAINEL DE TORNEIO
+   ============================================= */
+let torneioCarregado = false;
+
+document.getElementById('btn-toggle-torneio').addEventListener('click', async function () {
+    const layout = document.getElementById('app-layout');
+    const ativo = layout.classList.toggle('modo-torneio');
+    document.body.classList.toggle('modo-torneio-ativo', ativo);
+    this.innerHTML = ativo
+        ? '⬅ Voltar'
+        : '<img src="assets/trophy-icon.png" alt="Torneio" class="btn-icon-img"><span class="btn-torneio-label">Torneio</span>';
+    this.style.color = ativo ? '#fff' : '';
+
+    if (ativo) {
+        renderizarRecentesTorneio();
+        renderizarBracket();
+
+        if (!torneioCarregado) {
+            document.getElementById('grupos-rodape').innerHTML =
+                '<span style="color:var(--text-muted);font-size:11px;padding:10px;display:block;text-align:center;">Carregando grupos...</span>';
+            await buscarEConstruirTorneio();
+        }
+    }
+});
+
+async function buscarEConstruirTorneio() {
+    try {
+        const res = await fetch(`${URL_PROXY}?action=standings`);
+        if (!res.ok) throw new Error('Erro na rede');
+        const data = await res.json();
+        if (!data.response || data.response.length === 0) throw new Error('Sem dados');
+
+        const gruposApi = data.response[0].league.standings;
+        renderizarGrupos(gruposApi);
+        torneioCarregado = true;
+    } catch (e) {
+        console.error('Falha ao carregar torneio:', e);
+        document.getElementById('grupos-rodape').innerHTML =
+            '<span style="color:var(--amber);font-size:11px;padding:10px;display:block;text-align:center;">Falha ao carregar. Tente novamente.</span>';
+        torneioCarregado = false;
+    }
+}
+
+function renderizarRecentesTorneio() {
+    const lista = document.getElementById('torneio-recentes-lista');
+    const encerrados = Object.values(cachePartidas)
+        .filter(m => STATUS_FIM.includes(m.fixture.status.short))
+        .sort((a, b) => new Date(b.fixture.date) - new Date(a.fixture.date))
+        .slice(0, 3);
+
+    if (encerrados.length === 0) {
+        lista.innerHTML = '<div style="color:var(--text-muted);font-size:11px;text-align:center;padding:6px 0;">Sem resultados recentes</div>';
+        return;
+    }
+    lista.innerHTML = encerrados.map(m => criarBlocoPartida(m, false, null)).join('');
+}
+
+function renderizarBracket() {
+    const gerarColuna = (qtd) => {
+        let html = `<div class="bracket-col">`;
+        for (let i = 0; i < qtd; i++) {
+            html += `<div class="match-slot"><span>TBD</span><span>TBD</span></div>`;
+        }
+        html += `</div>`;
+        return html;
+    };
+    document.getElementById('bracket-left').innerHTML =
+        gerarColuna(8) + gerarColuna(4) + gerarColuna(2) + gerarColuna(1);
+    document.getElementById('bracket-right').innerHTML =
+        gerarColuna(1) + gerarColuna(2) + gerarColuna(4) + gerarColuna(8);
+}
+
+function renderizarGrupos(gruposApi) {
+    const scroller = document.getElementById('grupos-rodape');
+    const cores = [
+        '#FF4A7A','#00E5FF','#A020F0','#4CAF50','#FF9800','#03A9F4',
+        '#FF4A7A','#00E5FF','#A020F0','#4CAF50','#FF9800','#03A9F4'
+    ];
+
+    scroller.innerHTML = gruposApi.map((grupo, i) => {
+        const nomeGrupo = grupo[0].group.replace('Group', 'Grupo');
+        const cor = cores[i] || '#ffffff33';
+
+        const linhasTime = grupo.map((time, idx) => {
+            const classificado = idx < 2;
+            const corBorda = classificado ? 'var(--green-1)' : 'transparent';
+            const corNome = classificado ? 'var(--text-primary)' : 'var(--text-muted)';
+            const pesoFonte = classificado ? '700' : '400';
+            return `
+                <div class="grupo-linha-time" style="border-left-color:${corBorda}">
+                    <div class="grupo-linha-esq">
+                        <span class="grupo-rank">${time.rank}</span>
+                        <img src="${time.team.logo}" class="grupo-logo" alt="${time.team.name}">
+                        <span class="grupo-sigla" style="color:${corNome};font-weight:${pesoFonte};">${sigla(time.team.name)}</span>
+                    </div>
+                    <span class="grupo-pts">${time.points}</span>
+                </div>`;
+        }).join('');
+
+        return `
+            <div class="grupo-card" style="border-color:${cor}">
+                <div class="grupo-card-titulo" style="color:${cor}">${nomeGrupo}</div>
+                ${linhasTime}
+            </div>`;
+    }).join('');
+                                                                               }
