@@ -629,7 +629,6 @@ function renderizarRecentesTorneio() {
 }
 
 function renderizarBracket(standingsData) {
-    // ── helpers ──────────────────────────────────────────────────────────────
     const slotReal = (m) => {
         const d = new Date(m.fixture.date);
         const dia = String(d.getDate()).padStart(2,'0');
@@ -651,7 +650,6 @@ function renderizarBracket(standingsData) {
             ? `<span class="slot-sig tbd">TBD</span>`
             : `<img src="${m.teams.away.logo}" class="slot-logo"><span class="slot-sig">${sigla(m.teams.away.name)}</span>${temGol ? `<span class="slot-score${wA ? ' slot-score-win' : ''}">${golA}</span>` : ''}`;
 
-        // Se for 100% TBD ou a API avisar, mostra "A definir". Senão, mostra a data confirmada.
         const dataTexto = (m.fixture.status.short === 'TBD' || (isTbdA && isTbdB)) ? 'A definir' : `${dia}/${mes} ${hora}`;
 
         return `<div class="match-slot">
@@ -672,7 +670,6 @@ function renderizarBracket(standingsData) {
         return `<div class="bracket-col" data-slots="${qtd}">${slots.join('')}</div>`;
     };
 
-    // ── 1. Partidas eliminatórias reais por fase ──────────────────────────────
     const todasElim = Object.values(cachePartidas)
         .filter(m => !((m.league?.round ?? '').toLowerCase().includes('group')))
         .sort((a, b) => new Date(a.fixture.date) - new Date(b.fixture.date));
@@ -688,49 +685,85 @@ function renderizarBracket(standingsData) {
         else if (r.includes('final')) porFase.final.push(m);
     });
 
-    // ── 2. Montar R32 Estritamente (Sem Previsões Incorretas) ─────────────────
-    // Vamos preencher as 16 vagas com os jogos reais retornados pela API. 
-    // Onde não tiver jogo criado, injetamos TBD puro.
-    const slotsR32 = [];
-    for (let i = 0; i < 16; i++) {
-        if (porFase.r32[i]) {
-            slotsR32.push(slotReal(porFase.r32[i]));
-        } else {
-            slotsR32.push(slotTbd());
-        }
-    }
+    // --- NOVA LÓGICA DE DISTRIBUIÇÃO E ESPAÇOS VAZIOS ---
+    
+    // Função universal para organizar as partidas de uma fase nos slots visuais corretos
+    const organizarFase = (partidasCronologicas, totalSlotsFase, mapaOrdemVisual) => {
+        // Cria um array exato com o número de slots necessários (garante que os espaços vazios vão existir)
+        const slotsVisuais = new Array(totalSlotsFase).fill(null);
 
-    const slotsR32L = slotsR32.slice(0, 8);
-    const slotsR32R = slotsR32.slice(8, 16);
+        // Opcional: Se precisar forçar uma partida específica em um bloco usando o ID da API.
+        // Se a API carregar incompleta, essa é a forma mais segura. 
+        const mapaIDs = {
+            // Exemplo: 'ID_DA_PARTIDA': POSICAO_VISUAL (0 a 15)
+            // '1234567': 0, 
+        };
 
-    const faseSlots = (fase, qtd, lado) => {
-        const arr = porFase[fase];
-        const offset = lado === 'L' ? 0 : qtd;
-        return Array.from({length: qtd}, (_, i) => {
-            const m = arr[offset + i];
-            return m ? slotReal(m) : slotTbd();
+        partidasCronologicas.forEach((match, indexCronologico) => {
+            // Define o índice visual. Tenta pelo ID primeiro, se não achar, usa a ordem cronológica
+            let posicaoVisual = mapaIDs[match.fixture.id];
+            
+            if (posicaoVisual === undefined) {
+                posicaoVisual = mapaOrdemVisual[indexCronologico];
+            }
+
+            // Se o mapa definiu um destino válido, renderizamos a partida lá
+            if (posicaoVisual !== undefined && posicaoVisual < totalSlotsFase) {
+                slotsVisuais[posicaoVisual] = slotReal(match);
+            }
         });
+
+        // Preenche tudo que sobrou (que a API não enviou ainda) com blocos TBD puros
+        for (let i = 0; i < totalSlotsFase; i++) {
+            if (!slotsVisuais[i]) {
+                slotsVisuais[i] = slotTbd();
+            }
+        }
+
+        return slotsVisuais;
     };
 
-    // ── 3. Inserir no HTML ────────────────────────────────────────────────────
+    // MAPAS DE CHAVEAMENTO (Ordem Cronológica -> Slot Visual)
+    // Os números representam para onde o 1º jogo cronológico (0), 2º jogo (1) etc., devem ir.
+    // Lado esquerdo da tela = primeira metade dos números. Lado direito = segunda metade.
+    
+    // R32: 16 slots. Lado esquerdo: 0 a 7. Lado direito: 8 a 15.
+    // Exemplo: O 1º jogo (índice 0) vai pro Slot 0 (Esq 1). O 2º jogo (índice 1) vai pro Slot 8 (Dir 1).
+    const mapaR32 = [0, 8, 1, 9, 2, 10, 3, 11, 4, 12, 5, 13, 6, 14, 7, 15];
+    const slotsR32Visuais = organizarFase(porFase.r32, 16, mapaR32);
+    
+    // R16: 8 slots. Lado esquerdo: 0 a 3. Lado direito: 4 a 7.
+    const mapaR16 = [0, 4, 1, 5, 2, 6, 3, 7];
+    const slotsR16Visuais = organizarFase(porFase.r16, 8, mapaR16);
+
+    // QF: 4 slots. Lado esquerdo: 0 a 1. Lado direito: 2 a 3.
+    const mapaQF = [0, 2, 1, 3];
+    const slotsQFVisuais = organizarFase(porFase.qf, 4, mapaQF);
+
+    // SF: 2 slots. Lado esquerdo: 0. Lado direito: 1.
+    const mapaSF = [0, 1];
+    const slotsSFVisuais = organizarFase(porFase.sf, 2, mapaSF);
+
+    // ── Inserir no HTML ────────────────────────────────────────────────────
     const leftHtml =
-        coluna(slotsR32L) +
-        coluna(faseSlots('r16', 4, 'L')) +
-        coluna(faseSlots('qf',  2, 'L')) +
-        coluna(faseSlots('sf',  1, 'L'));
+        coluna(slotsR32Visuais.slice(0, 8)) +
+        coluna(slotsR16Visuais.slice(0, 4)) +
+        coluna(slotsQFVisuais.slice(0, 2)) +
+        coluna(slotsSFVisuais.slice(0, 1));
 
     const rightHtml =
-        coluna(faseSlots('sf',  1, 'R')) +
-        coluna(faseSlots('qf',  2, 'R')) +
-        coluna(faseSlots('r16', 4, 'R')) +
-        coluna(slotsR32R);
+        coluna(slotsSFVisuais.slice(1, 2)) +
+        coluna(slotsQFVisuais.slice(2, 4)) +
+        coluna(slotsR16Visuais.slice(4, 8)) +
+        coluna(slotsR32Visuais.slice(8, 16));
 
     document.getElementById('bracket-left').innerHTML  = leftHtml;
     document.getElementById('bracket-right').innerHTML = rightHtml;
 
-    // ── 4. Final e 3º Lugar ───────────────────────────────────────────────────
+    // ── Final e 3º Lugar ───────────────────────────────────────────────────
     const finalEl = document.querySelector('#bracket-final .match-slot');
     const thirdEl = document.querySelector('#bracket-bronze .match-slot');
+    
     if (finalEl) {
         const mF = porFase.final[0];
         finalEl.outerHTML = mF ? slotReal(mF) : slotTbd().replace('slot-tbd','final-slot');
