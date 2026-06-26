@@ -35,7 +35,6 @@ const SIGLAS_FIFA = {
     "Senegal": "SEN", "Tunisia": "TUN", "New Zealand": "NZL"
 };
 
-
 // Cores tema oficiais por seleção (primary kit / associação nacional)
 const CORES_SELECOES = {
     6:    '#FFD700', // Brasil — amarelo
@@ -128,10 +127,9 @@ const CORES_ALT = {
 
 function corSelecao(homeId, awayId) {
     const corH = CORES_SELECOES[homeId] || 'var(--green-1)';
-    if (awayId === undefined) return corH; // chamada simples
+    if (awayId === undefined) return corH;
     const corA = CORES_SELECOES[awayId] || 'var(--amber)';
 
-    // Detectar conflito: mesma cor ou cores muito parecidas
     const conflito = corH.toLowerCase() === corA.toLowerCase();
     const corHFinal = corH;
     const corAFinal = conflito
@@ -217,11 +215,9 @@ function renderizarDetalhes(fixtureId, dados) {
         const statusShort = match.fixture.status.short;
         const isLive = STATUS_LIVE.includes(statusShort);
         const elapsed = match.fixture.status.elapsed;
-        // Cores tema para as barras de estatística
         const cores = corSelecao(match.teams.home.id, match.teams.away.id);
         const corHome = cores.home;
         const corAway = cores.away;
-        // Injetar CSS vars dinamicamente para as barras
         document.getElementById('conteudo-estatisticas').style.setProperty('--bar-home', corHome);
         document.getElementById('conteudo-estatisticas').style.setProperty('--bar-away', corAway);
 
@@ -336,9 +332,6 @@ function renderizarDetalhes(fixtureId, dados) {
 
                 const desc = e.player?.name || '—';
 
-                // Minuto sempre à esquerda.
-                // Casa  → [min'] | [icone] nome  | (vazio)
-                // Fora  → [min'] | (vazio)        | nome [icone]
                 const conteudoHome = isHome
                     ? `<span class="evento-icone">${icone}</span><span class="evento-nome">${desc}${detalhe ? ` <span class="evento-detalhe">${detalhe}</span>` : ''}</span>`
                     : '';
@@ -520,7 +513,6 @@ async function atualizarPainel() {
             }).join('');
         }
 
-        // Em modo torneio mostra os 3 últimos, caso contrário só 1
         const modoTorneio = document.getElementById('app-layout').classList.contains('modo-torneio');
         const qtdEncerrados = modoTorneio ? 3 : 1;
         const tituloHistory = document.getElementById('history-title-label');
@@ -567,7 +559,6 @@ document.getElementById('btn-toggle-torneio').addEventListener('click', async fu
     this.style.color = ativo ? '#fff' : '';
 
     if (!ativo) {
-        // Volta history para 1 partida ao fechar
         const tituloLabel = document.getElementById('history-title-label');
         if (tituloLabel) tituloLabel.innerText = 'Último Resultado';
         const historyContent = document.getElementById('history-content');
@@ -584,7 +575,7 @@ document.getElementById('btn-toggle-torneio').addEventListener('click', async fu
         renderizarRecentesTorneio();
 
         if (torneioCarregado) {
-            renderizarBracket(null); // atualiza com cache de partidas existente
+            renderizarBracket(null); 
         }
 
         if (!torneioCarregado) {
@@ -604,7 +595,6 @@ async function buscarEConstruirTorneio() {
 
         const todasEntradas = data.response[0].league.standings;
 
-        // "Group Stage" = tabela de 3ºs já ordenada pela FIFA (rank 1-8 avançam)
         const tabelaTerceiros = todasEntradas.find(g => g[0]?.group === 'Group Stage') ?? [];
         const top8TerceiroIds = new Set(
             tabelaTerceiros.filter(t => t.rank <= 8).map(t => t.team.id)
@@ -622,7 +612,6 @@ async function buscarEConstruirTorneio() {
 }
 
 function renderizarRecentesTorneio() {
-    // Atualiza o history-content do painel principal para mostrar 3 partidas
     const historyContent = document.getElementById('history-content');
     const tituloLabel = document.getElementById('history-title-label');
     if (tituloLabel) tituloLabel.innerText = 'Últimos Resultados';
@@ -650,17 +639,21 @@ function renderizarBracket(standingsData) {
         const temGol = golH !== null && golA !== null;
         const wH = m.teams.home.winner === true;
         const wA = m.teams.away.winner === true;
+
+        const isTbdA = !m.teams.home.id || (m.teams.home.name && m.teams.home.name.toUpperCase() === 'TBD');
+        const isTbdB = !m.teams.away.id || (m.teams.away.name && m.teams.away.name.toUpperCase() === 'TBD');
+
+        const rowA = isTbdA
+            ? `<span class="slot-sig tbd">TBD</span>`
+            : `<img src="${m.teams.home.logo}" class="slot-logo"><span class="slot-sig">${sigla(m.teams.home.name)}</span>${temGol ? `<span class="slot-score${wH ? ' slot-score-win' : ''}">${golH}</span>` : ''}`;
+
+        const rowB = isTbdB
+            ? `<span class="slot-sig tbd">TBD</span>`
+            : `<img src="${m.teams.away.logo}" class="slot-logo"><span class="slot-sig">${sigla(m.teams.away.name)}</span>${temGol ? `<span class="slot-score${wA ? ' slot-score-win' : ''}">${golA}</span>` : ''}`;
+
         return `<div class="match-slot">
-            <div class="slot-team-row${wH ? ' slot-winner' : ''}">
-                <img src="${m.teams.home.logo}" class="slot-logo">
-                <span class="slot-sig">${sigla(m.teams.home.name)}</span>
-                ${temGol ? `<span class="slot-score${wH ? ' slot-score-win' : ''}">${golH}</span>` : ''}
-            </div>
-            <div class="slot-team-row${wA ? ' slot-winner' : ''}">
-                <img src="${m.teams.away.logo}" class="slot-logo">
-                <span class="slot-sig">${sigla(m.teams.away.name)}</span>
-                ${temGol ? `<span class="slot-score${wA ? ' slot-score-win' : ''}">${golA}</span>` : ''}
-            </div>
+            <div class="slot-team-row${wH && !isTbdA ? ' slot-winner' : ''}">${rowA}</div>
+            <div class="slot-team-row${wA && !isTbdB ? ' slot-winner' : ''}">${rowB}</div>
             <span class="slot-data">${dia}/${mes} ${hora}</span>
         </div>`;
     };
@@ -695,7 +688,6 @@ function renderizarBracket(standingsData) {
         .filter(m => !((m.league?.round ?? '').toLowerCase().includes('group')))
         .sort((a, b) => new Date(a.fixture.date) - new Date(b.fixture.date));
 
-    // Classificar por fase com base no round
     const porFase = { r32: [], r16: [], qf: [], sf: [], final: [], third: [] };
     todasElim.forEach(m => {
         const r = (m.league?.round ?? '').toLowerCase();
@@ -707,67 +699,70 @@ function renderizarBracket(standingsData) {
         else if (r.includes('final')) porFase.final.push(m);
     });
 
-    // ── 2. Times classificados (para r32 quando não há partidas reais) ────────
+    // ── 2. Times classificados (para R32 quando não há partidas reais) ────────
     const classificadosPorGrupo = {};
     if (standingsData) {
         standingsData
             .filter(g => /^Group [A-L]$/i.test(g[0]?.group ?? ''))
             .forEach(g => {
                 const letra = g[0].group.replace('Group ', '');
-                classificadosPorGrupo[letra] = g.filter(t => t.description === 'Round of 32').slice(0, 2);
+                // Pega apenas quem tem a tag explícita na description da API
+                classificadosPorGrupo[letra] = g.filter(t => {
+                    const desc = t.description?.toLowerCase() || '';
+                    return desc.includes('round of 32') || desc.includes('16 avos');
+                });
             });
     }
 
-    // Monta lista de 32 classificados: pares por grupo A…L + 8 terceiros
-    // Cada par [1ºX, 2ºX] vira um slot; os 8 terceiros são colocados em slots opostos
-    // seguindo a ordem da tabela Group Stage da API
-    const grupoOrdem = ['A','B','C','D','E','F','G','H','I','J','K','L'];
-    // 24 classificados diretos (2 por grupo) em pares
-    const paresDiretos = grupoOrdem.map(l => {
-        const g = classificadosPorGrupo[l] || [];
-        return [g[0] || null, g[1] || null];
-    }); // 12 pares
-
-    // 8 terceiros classificados
     let terceiros = [];
     if (standingsData) {
         const gs = standingsData.find(g => g[0]?.group === 'Group Stage') ?? [];
-        terceiros = gs.filter(t => t.description === 'Round of 32'); // rank 1-8
+        terceiros = gs.filter(t => {
+            const desc = t.description?.toLowerCase() || '';
+            return desc.includes('round of 32') || desc.includes('16 avos');
+        });
     }
-    // 8 slots de terceiros (emparelhados com 1ºs de grupos opostos — sorteio ainda não feito)
-    // Por ora: terceiro[i] faz par com 1º do grupo oposto no slot
-    // Layout: lado esquerdo = slots 1-8, lado direito = slots 9-16
-    // Montamos 16 slots de r32 no total
-    // Slots L: par(A), par(B), par(C), par(D), par(E), par(F), par(G), par(H) → 8 slots left
-    // Slots R: par(I), par(J), par(K), par(L), + 4 slots com terceiros cada → 8 slots right
-    // Simplificado: 16 slots, cada um com 2 times. Lados iguais.
 
-    const gerarSlotsR32 = (pares, tercs, inicio, fim) => {
-        // Se há partidas reais para r32, usa elas
-        if (porFase.r32.length >= fim) {
-            return porFase.r32.slice(inicio, fim).map(m => slotReal(m));
-        }
-        // Senão monta com classificados
-        const slots = [];
-        for (let i = inicio; i < fim; i++) {
-            // Para slots 0-11: par de grupo direto
-            if (i < 12) {
-                const par = pares[i] || [null, null];
-                slots.push(slotClassificados(par[0], par[1]));
-            } else {
-                // Slots 12-15: terceiros (emparelhar 1º grupo com 3º)
-                const t = tercs[i - 12] || null;
-                const oponenteIdx = i - 12; // simplificado
-                const oponente = pares[oponenteIdx] ? pares[oponenteIdx][0] : null;
-                slots.push(slotClassificados(oponente, t));
-            }
-        }
-        return slots;
+    // Busca o time respeitando sua posição no grupo (1 para 1º, 2 para 2º)
+    const getTeam = (letra, rankEsperado) => {
+        const grupo = classificadosPorGrupo[letra] || [];
+        return grupo.find(t => t.rank === rankEsperado) || null;
     };
 
-    // ── 3. Gerar slots por fase ───────────────────────────────────────────────
-    const slotsR32L  = gerarSlotsR32(paresDiretos, terceiros, 0, 8);
-    const slotsR32R  = gerarSlotsR32(paresDiretos, terceiros, 8, 16);
+    const getThird = (idx) => terceiros[idx] || null;
+
+    // ── 3. Montar R32 Distribuindo Uniformemente (Evitar que 1A jogue com 2A) ─
+    const slotsR32 = [];
+    for (let i = 0; i < 16; i++) {
+        if (porFase.r32[i]) {
+            slotsR32.push(slotReal(porFase.r32[i]));
+        } else {
+            let tA = null, tB = null;
+            switch(i) {
+                // Distribuição padrão de cruzamento: 1º vs 3º ou 1º vs 2º de OUTROS grupos.
+                case 0:  tA = getTeam('A', 1); tB = getThird(0); break;
+                case 1:  tA = getTeam('B', 2); tB = getTeam('C', 2); break;
+                case 2:  tA = getTeam('D', 1); tB = getThird(1); break;
+                case 3:  tA = getTeam('E', 2); tB = getTeam('F', 2); break;
+                case 4:  tA = getTeam('G', 1); tB = getThird(2); break;
+                case 5:  tA = getTeam('H', 2); tB = getTeam('I', 2); break;
+                case 6:  tA = getTeam('J', 1); tB = getThird(3); break;
+                case 7:  tA = getTeam('K', 2); tB = getTeam('L', 2); break;
+                case 8:  tA = getTeam('B', 1); tB = getThird(4); break;
+                case 9:  tA = getTeam('C', 1); tB = getTeam('A', 2); break;
+                case 10: tA = getTeam('E', 1); tB = getThird(5); break;
+                case 11: tA = getTeam('F', 1); tB = getTeam('D', 2); break;
+                case 12: tA = getTeam('H', 1); tB = getThird(6); break;
+                case 13: tA = getTeam('I', 1); tB = getTeam('G', 2); break;
+                case 14: tA = getTeam('K', 1); tB = getThird(7); break;
+                case 15: tA = getTeam('L', 1); tB = getTeam('J', 2); break;
+            }
+            slotsR32.push(slotClassificados(tA, tB));
+        }
+    }
+
+    const slotsR32L = slotsR32.slice(0, 8);
+    const slotsR32R = slotsR32.slice(8, 16);
 
     const faseSlots = (fase, qtd, lado) => {
         const arr = porFase[fase];
@@ -778,7 +773,7 @@ function renderizarBracket(standingsData) {
         });
     };
 
-    // ── 4. Montar lados ───────────────────────────────────────────────────────
+    // ── 4. Inserir no HTML ────────────────────────────────────────────────────
     const leftHtml =
         coluna(slotsR32L) +
         coluna(faseSlots('r16', 4, 'L')) +
@@ -794,7 +789,7 @@ function renderizarBracket(standingsData) {
     document.getElementById('bracket-left').innerHTML  = leftHtml;
     document.getElementById('bracket-right').innerHTML = rightHtml;
 
-    // ── 5. Final e 3º lugar ───────────────────────────────────────────────────
+    // ── 5. Final e 3º Lugar ───────────────────────────────────────────────────
     const finalEl = document.querySelector('#bracket-final .match-slot');
     const thirdEl = document.querySelector('#bracket-bronze .match-slot');
     if (finalEl) {
@@ -809,12 +804,7 @@ function renderizarBracket(standingsData) {
 
 function renderizarGrupos(todasEntradas, top8TerceiroIds) {
     const scroller = document.getElementById('grupos-rodape');
-    const cores = [
-        '#FF4A7A','#00E5FF','#A020F0','#4CAF50','#FF9800','#03A9F4',
-        '#FF4A7A','#00E5FF','#A020F0','#4CAF50','#FF9800','#03A9F4'
-    ];
 
-    // Filtra apenas grupos reais (Group A … Group L)
     const gruposValidos = todasEntradas.filter(grupo =>
         /^Group\s+[A-L]$/i.test(grupo[0]?.group ?? '')
     );
