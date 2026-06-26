@@ -1,4 +1,4 @@
-const URL_PROXY = 'https:
+const URL_PROXY = 'https://cuptracker.sstudioslabs.workers.dev/v4/matches';
 const STATUS_LIVE = ['1H', '2H', 'ET', 'P'];
 const STATUS_LIVE_COM_HT = ['1H', '2H', 'ET', 'P', 'HT'];
 const STATUS_FIM = ['FT', 'AET', 'PEN'];
