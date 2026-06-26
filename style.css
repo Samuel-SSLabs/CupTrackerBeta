@@ -196,6 +196,27 @@ body {
     padding: 0 4px;
 }
 
+.final-box {
+    position: relative;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+}
+
+.trophy-overlay {
+    width: 24px;
+    height: 24px;
+    position: absolute;
+    top: -12px;
+    z-index: 10;
+    filter: drop-shadow(0 0 5px rgba(255, 171, 77, 0.5));
+    pointer-events: none;
+}
+
+.final-slot {
+    margin-top: 10px; 
+}
+
 /* colunas dos times */
 .evento-col {
     display: flex;
