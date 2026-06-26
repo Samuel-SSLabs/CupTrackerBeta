@@ -11,12 +11,8 @@
     <link rel="stylesheet" href="style.css">
 </head>
 <body>
-
     <div id="debug-log">Conectando...</div>
-
     <div class="tft-screen">
-
-        <!-- CABEÇALHO -->
         <header class="header">
             <span class="header-title">COPA 2026</span>
             <div class="header-actions">
@@ -28,16 +24,11 @@
                 </button>
             </div>
         </header>
-
-        <!-- LAYOUT PRINCIPAL DESLIZANTE -->
         <div id="app-layout" class="layout-jogos">
-
-            <!-- COLUNA ESQUERDA: painel de partidas -->
             <div class="painel-jogos">
                 <div class="game-list" id="main-queue">
                     <div class="sem-jogos">Carregando...</div>
                 </div>
-
                 <div class="history-block">
                     <div class="history-title" id="history-title-label">Último Resultado</div>
                     <div id="history-content">
@@ -45,11 +36,7 @@
                     </div>
                 </div>
             </div>
-
-            <!-- COLUNA DIREITA: painel de torneio (oculto por padrão) -->
             <div class="painel-torneio">
-
-                <!-- Chaveamento -->
                 <div class="torneio-box torneio-box-bracket">
                     <div class="bracket-container">
                         <div class="bracket-side side-left" id="bracket-left"></div>
@@ -67,18 +54,13 @@
                         <div class="bracket-side side-right" id="bracket-right"></div>
                     </div>
                 </div>
-
-                <!-- Carrossel de Grupos -->
                 <div class="torneio-box">
                     <div class="grupos-carousel-container">
                         <div class="grupos-scroller" id="grupos-rodape"></div>
                     </div>
                 </div>
-
             </div>
         </div>
-
-        <!-- MODAL DE DETALHES -->
         <div id="modal-detalhes">
             <div class="modal-header">
                 <button id="btn-voltar" onclick="fecharModal()" title="Voltar">←</button>
@@ -91,9 +73,7 @@
                 </div>
             </div>
         </div>
-
     </div>
-
     <div class="powered-by">
         <span>Powered by</span>
         <div class="powered-by-logos">
@@ -101,7 +81,6 @@
             <img src="assets/logo-parceiro.png" alt="Logo Parceiro">
         </div>
     </div>
-
     <script src="script.js"></script>
 </body>
 </html>
